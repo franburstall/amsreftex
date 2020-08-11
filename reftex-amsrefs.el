@@ -4,7 +4,7 @@
 ;;                
 ;; Author:        Fran Burstall <feb@maths.bath.ac.uk>
 ;; Created at:    Wed Jan  3 21:29:31 2018
-;; Modified at:   Thu Jan  4 22:25:42 2018
+;; Modified at:   Thu Feb 15 21:12:00 2018
 ;; Modified by:   Fran Burstall <feb@maths.bath.ac.uk>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -75,6 +75,18 @@ If FIELD is empty try \"editor\" field."
 	       if (equal (car item) name-type)
 	       collect (car (split-string (cdr item) "," t spaces))))
      ((equal name-count 1)
+      (let ((names (reftex-get-bib-field field entry)))
+	(if (equal "" names)
+	    (setq names (reftex-get-bib-field "editor" entry)))
+	(while (string-match "\\band\\b[ \t]*" names)
+	  (setq names (replace-match "\n" nil t names)))
+	(while (string-match "[\\.a-zA-Z\\-]+\\.[ \t]*\\|,.*\\|[{}]+" names)
+	  (setq names (replace-match "" nil t names)))
+	(while (string-match "^[ \t]+\\|[ \t]+$" names)
+	  (setq names (replace-match "" nil t names)))
+	(while (string-match "[ \t][ \t]+" names)
+	  (setq names (replace-match " " nil t names)))
+	(split-string names "\n"))
       (mapcar (lambda (x) (car (split-string x "," t)))
 	      (split-string (reftex-get-bib-field name-type entry) "\\band\\b" t
 			    spaces)))
