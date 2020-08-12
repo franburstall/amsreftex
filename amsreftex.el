@@ -1,106 +1,85 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Filename:      reftex-amsrefs.el
+;; Filename:      amsreftex.el
 ;; Description:   We attempt to extend reftex to handle amsrefs bibliographies.
 ;;                
 ;; Author:        Fran Burstall <feb@maths.bath.ac.uk>
 ;; Created at:    Wed Jan  3 21:29:31 2018
-;; Modified at:   Thu Feb 15 21:12:00 2018
+;; Modified at:   Wed Aug 12 13:39:49 2020
 ;; Modified by:   Fran Burstall <feb@maths.bath.ac.uk>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'cl-lib)
+(require 'reftex)
 
-(defun reftex-parse-amsref-entry (entry &optional from to raw)
+;; An amsrefs entry is modelled  by an a-list, collecting authors and editors into
+;; lists of same.
+(defun amsreftex-extract-fields (blob &optional prefix)
+  "Scan string BLOB for key-value pairs and collect these in an a-list.
+
+Prefix key with string \"PREFIX-\" if PREFIX is non-nil.
+
+Fields with keys 'author' or 'editor' are collected into lists of same."
+  (with-temp-buffer
+    (fundamental-mode)
+    (set-syntax-table reftex-syntax-table-for-bib)
+    (insert blob)
+    (goto-char (point-min))
+    (let (alist start stop key field authors editors)
+      (while (re-search-forward "\\(\\(?:\\w\\|-\\)+\\)[ \t\n\r]*=[ \t\n\r]*{"
+				nil t)
+	(setq key (downcase (reftex-match-string 1)))
+	;; (forward-char 1)
+	(setq start (point))
+	(condition-case nil
+	    (up-list 1)
+	  (error nil))
+	;; extract field value
+	(let ((stop (1- (point))))
+	  (setq field (buffer-substring-no-properties start stop)))
+	;; remove extra whitespace
+	(while (string-match "[\n\t\r]\\|[ \t][ \t]+" field)
+	  (setq field (replace-match " " nil t field)))
+	;; collect fields
+	(cond
+	 ((equal key "author")
+	  (push field authors))
+	 ((equal key "editor")
+	  (push field editors))
+	 ((equal key "book")
+	  ;; compound field so recurse
+	  (setq alist (append (amsreftex-extract-fields field "book") alist)))
+	 (t
+	  (push (cons (concat prefix (when prefix "-") key) field) alist))))
+      (when authors
+	(push (cons (concat prefix (when prefix "-") "authors") (nreverse authors)) alist))
+      (when editors
+	(push (cons (concat prefix (when prefix "-") "editors") (nreverse editors)) alist))
+      (nreverse alist))))
+
+
+(defun amsreftex-parse-entry (entry &optional from to)
   "Parse amsrefs ENTRY.
-If ENTRY is nil then parse the entry in current buffer between FROM and TO.
-If RAW is non-nil, keep double quotes/curly braces delimiting fields."
-  (let (alist key start field)
+If ENTRY is nil then parse the entry in current buffer between FROM and TO."
+  (let (alist key start field authors editors)
     (save-excursion
       (save-restriction
-        (if entry
-            (progn
-              (set-buffer (get-buffer-create " *RefTeX-scratch*"))
-              (fundamental-mode)
-              (set-syntax-table reftex-syntax-table-for-bib)
-              (erase-buffer)
-              (insert entry))
-          (widen)
-          (if (and from to) (narrow-to-region from to)))
-        (goto-char (point-min))
-
-        (if (re-search-forward "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{" nil t)
-            (setq alist
-                  (list
-                   (cons "&type" (downcase (reftex-match-string 2)))
-                   (cons "&key"  (reftex-match-string 1)))))
-        (while (re-search-forward "\\(\\(?:\\w\\|-\\)+\\)[ \t\n\r]*=[ \t\n\r]*"
-				  nil t)
-          (setq key (downcase (reftex-match-string 1)))
-          (cond
-           (raw
-            (setq start (point))
-            (forward-char 1))
-           (t
-            (forward-char 1)
-            (setq start (point))
-            ))
-	  (condition-case nil
-                (up-list 1)
-              (error nil))
-          
-          ;; extract field value, ignore trailing comma if in RAW mode
-          (let ((stop (if (and raw (not (= (char-after (1- (point))) ?,)))
-                          (point)
-                        (1- (point))) ))
-            (setq field (buffer-substring-no-properties start stop)))
-          ;; remove extra whitespace
-          (while (string-match "[\n\t\r]\\|[ \t][ \t]+" field)
-            (setq field (replace-match " " nil t field)))
-          (push (cons key field) alist))))
-    (nreverse  alist)))
-;; TO DO: do amsref and bibtex in one shot
-
-(defun reftex-get-amsrefs-names (field entry)
-  "Return a list with the author or editor names in ENTRY.
-If FIELD is empty try \"editor\" field."
-  (let* ((field-count (cl-count-if (lambda (x) (equal (car x) field)) entry))
-	 (name-type (if (> field-count 0) field "editor"))
-	 (name-count (if (equal name-type field)
-			 field-count
-		       (cl-count-if (lambda (x) (equal (car x) name-type)) entry)))
-	 (spaces split-string-default-separators))
-    (cond
-     ((> name-count 1)
-      (cl-loop for item in entry
-	       if (equal (car item) name-type)
-	       collect (car (split-string (cdr item) "," t spaces))))
-     ((equal name-count 1)
-      (let ((names (reftex-get-bib-field field entry)))
-	(if (equal "" names)
-	    (setq names (reftex-get-bib-field "editor" entry)))
-	(while (string-match "\\band\\b[ \t]*" names)
-	  (setq names (replace-match "\n" nil t names)))
-	(while (string-match "[\\.a-zA-Z\\-]+\\.[ \t]*\\|,.*\\|[{}]+" names)
-	  (setq names (replace-match "" nil t names)))
-	(while (string-match "^[ \t]+\\|[ \t]+$" names)
-	  (setq names (replace-match "" nil t names)))
-	(while (string-match "[ \t][ \t]+" names)
-	  (setq names (replace-match " " nil t names)))
-	(split-string names "\n"))
-      (mapcar (lambda (x) (car (split-string x "," t)))
-	      (split-string (reftex-get-bib-field name-type entry) "\\band\\b" t
-			    spaces)))
-     (t ""))))
-
-
-;; NEXT: use this to replace reftex-get-bib-names
+	(if entry
+	    (progn
+	      (set-buffer (get-buffer-create " *RefTeX-scratch*"))
+	      (fundamental-mode)
+	      (set-syntax-table reftex-syntax-table-for-bib)
+	      (erase-buffer)
+	      (insert entry))
+	  (widen)
+	  (if (and from to) (narrow-to-region from to)))
+	(amsreftex-extract-fields (buffer-string))))))
 
 
 (defun reftex-format-amsrefs-entry (entry)
   "Format a amsrefs ENTRY so that it is nice to look at."
   (let*
-      ((auth-list (reftex-get-amsrefs-names "author" entry))
-       (authors (mapconcat 'identity auth-list ", "))
+      ((authors (mapconcat (lambda (author) (car (split-string author ",")))
+			   (reftex-get-bib-field "authors" entry) ", "))
        (year      (or (car (split-string (reftex-get-bib-field "date" entry) "-" t))
 		      (reftex-get-bib-field "year" entry)))
        (title     (reftex-get-bib-field "title" entry))
