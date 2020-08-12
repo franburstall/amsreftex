@@ -4,7 +4,7 @@
 ;;                
 ;; Author:        Fran Burstall <feb@maths.bath.ac.uk>
 ;; Created at:    Wed Jan  3 21:29:31 2018
-;; Modified at:   Wed Aug 12 13:39:49 2020
+;; Modified at:   Wed Aug 12 16:00:08 2020
 ;; Modified by:   Fran Burstall <feb@maths.bath.ac.uk>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -60,7 +60,7 @@ Fields with keys 'author' or 'editor' are collected into lists of same."
 (defun amsreftex-parse-entry (entry &optional from to)
   "Parse amsrefs ENTRY.
 If ENTRY is nil then parse the entry in current buffer between FROM and TO."
-  (let (alist key start field authors editors)
+  (let (alist)
     (save-excursion
       (save-restriction
 	(if entry
@@ -72,58 +72,85 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	      (insert entry))
 	  (widen)
 	  (if (and from to) (narrow-to-region from to)))
-	(amsreftex-extract-fields (buffer-string))))))
+	(goto-char (point-min))
+	(if (re-search-forward "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{" nil t)
+	    (setq alist
+		  (list
+		   (cons "&type" (downcase (reftex-match-string 2)))
+		   (cons "&key" (reftex-match-string 1)))))
+	(append alist (amsreftex-extract-fields (buffer-string)))))))
 
+;; reftex-get-bib-field returns the empty string when the field is not
+;; present.  This makes testing for presence more verbose.  So we
+;; return nil in this case.
+(defun amsreftex-get-bib-field (field entry)
+  "Return value of field FIELD in ENTRY or nil if FIELD is not present."
+  (cdr (assoc field entry)))
+
+(defun amsreftex-extract-authors (entry)
+  "Deliver list of ENTRY's authors, or, failing that, editors."
+  (if-let ((authors (amsreftex-get-bib-field "authors" entry)))
+      authors
+    (amsreftex-get-bib-field "editors" entry)))
 
 (defun reftex-format-amsrefs-entry (entry)
   "Format a amsrefs ENTRY so that it is nice to look at."
   (let*
       ((authors (mapconcat (lambda (author) (car (split-string author ",")))
-			   (reftex-get-bib-field "authors" entry) ", "))
-       (year      (or (car (split-string (reftex-get-bib-field "date" entry) "-" t))
-		      (reftex-get-bib-field "year" entry)))
-       (title     (reftex-get-bib-field "title" entry))
-       (type      (reftex-get-bib-field "&type" entry))
-       (key       (reftex-get-bib-field "&key"  entry))
+			   (amsreftex-extract-authors entry) ", "))
+       (year (if-let ((date (amsreftex-get-bib-field "date" entry)))
+		 (car (split-string date "-" t))))
+       (title (amsreftex-get-bib-field "title" entry))
+       (journal (amsreftex-get-bib-field "journal" entry))
+       ;; there are two places to look for the title of a containing book
+       (booktitle (if-let ((bt (amsreftex-get-bib-field "booktitle" entry)))
+		      bt
+		    (amsreftex-get-bib-field "book-title" entry)))
+       (eprint (amsreftex-get-bib-field "eprint" entry))
+       (volume (amsreftex-get-bib-field "volume" entry))
+       (pages (amsreftex-get-bib-field "pages" entry))
+       (publisher (amsreftex-get-bib-field "publisher" entry))
+       (thesis-type (amsreftex-get-bib-field "type" entry))
+       (school (amsreftex-get-bib-field "organization" entry))
+       
+       (type (amsreftex-get-bib-field "&type" entry))
+       (key (amsreftex-get-bib-field "&key" entry))
        (extra
-        (cond
-         ((equal type "article")
-          (concat (let ((jt (reftex-get-bib-field "journal" entry)))
-                    ;; biblatex prefers the alternative journaltitle
-                    ;; field, so check if that exists in case journal
-                    ;; is empty.
-                    (if (zerop (length jt))
-                        (reftex-get-bib-field "journaltitle" entry)
-                      jt))
-                  " "
-                  (reftex-get-bib-field "volume" entry) ", "
-                  (reftex-get-bib-field "pages" entry)))
-         ((equal type "book")
-          (concat "book (" (reftex-get-bib-field "publisher" entry) ")"))
-         ((equal type "phdthesis")
-          (concat "PhD: " (reftex-get-bib-field "school" entry)))
-         ((equal type "mastersthesis")
-          (concat "Master: " (reftex-get-bib-field "school" entry)))
-         ((equal type "inbook")
-          (concat "Chap: " (reftex-get-bib-field "chapter" entry)
-                  ", pp. " (reftex-get-bib-field "pages"   entry)))
-         ((or (equal type "conference")
-              (equal type "incollection")
-              (equal type "inproceedings"))
-          (reftex-get-bib-field "booktitle" entry "in: %s"))
-         (t ""))))
+	(cond
+	 ((equal type "article")
+	  ;; For amsrefs, almost everything is an article, whether in
+	  ;; a journal or a conference proceedings or a preprint.
+	  ;; This means we must work a little harder to find out where
+	  ;; the article appears.  We go with the 'journal' field if
+	  ;; present and failing that, we try 'booktitle' and
+	  ;; 'eprint'.
+	  (cond
+	   (journal (concat journal
+			    (when volume (format " %s" volume))
+			    (when pages (format ", %s" pages))))
+	   (booktitle (concat (format "in: %s" booktitle)
+			      (when pages (format ", %s" pages))))
+	   (eprint (format "eprint: %s" eprint))
+	   (t "")))
+	 ((equal type "book")
+	  (concat "book" (when publisher (format " (%s)" publisher))))
+	 ((equal type "thesis")
+	  (concat thesis-type (when (and thesis-type school) (format ": %s" school))
+		  ": " (amsreftex-get-bib-field "organization" entry)))
+	 (t ""))))
+
     (setq authors (reftex-truncate authors 30 t t))
     (when (reftex-use-fonts)
-      (put-text-property 0 (length key)     'face reftex-label-face
-                         key)
+      (put-text-property 0 (length key) 'face reftex-label-face
+			 key)
       (put-text-property 0 (length authors) 'face reftex-bib-author-face
-                         authors)
-      (put-text-property 0 (length year)    'face reftex-bib-year-face
-                         year)
-      (put-text-property 0 (length title)   'face reftex-bib-title-face
-                         title)
-      (put-text-property 0 (length extra)   'face reftex-bib-extra-face
-                         extra))
+			 authors)
+      (put-text-property 0 (length year) 'face reftex-bib-year-face
+			 year)
+      (put-text-property 0 (length title) 'face reftex-bib-title-face
+			 title)
+      (put-text-property 0 (length extra) 'face reftex-bib-extra-face
+			 extra))
     (concat key "\n     " authors " " year " " extra "\n     " title "\n\n")))
 
 ;; samples for testing
@@ -143,7 +170,7 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 }
 ")
 
-(setq amsrefs-entry-1 "\bib{burstall_isothermic_2006}{article}{
+(setq amsrefs-entry-1 "\\bib{burstall_isothermic_2006}{article}{
       author={Burstall, F.~E.},
        title={Isothermic surfaces: conformal geometry, {C}lifford algebras and
   integrable systems},
@@ -160,14 +187,16 @@ date={2006},
      address={Providence, RI},},
 }
 ")
-
+e
 
 
 (setq entry (amsreftex-parse-entry amsrefs-entry-1))
 
 (reftex-format-amsrefs-entry entry)
 
+(cond ((amsreftex-get-bib-field "book-title" entry) "Yes"))
+
+entry
 
 
-
-
+(assoc "authors" entry)
