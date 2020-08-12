@@ -125,9 +125,6 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
       (put-text-property 0 (length extra)   'face reftex-bib-extra-face
                          extra))
     (concat key "\n     " authors " " year " " extra "\n     " title "\n\n")))
-;; Next: booktitle if no jnl for article
-;; theses
-;; conference type things (need examples here)
 
 ;; samples for testing
 (setq amsrefs-entry "\\bib{BraDor09}{article}{
@@ -146,8 +143,31 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 }
 ")
 
+(setq amsrefs-entry-1 "\bib{burstall_isothermic_2006}{article}{
+      author={Burstall, F.~E.},
+       title={Isothermic surfaces: conformal geometry, {C}lifford algebras and
+  integrable systems},
+date={2006},
+       pages={1\\ndash 82},
+       review={\\MR{2222512}},
+        doi={10.1090/amsip/036/01},
+        book={                  
+          title={Integrable systems, geometry, and topology},
+      editor={Terng, Chuu-Lian},
+      series={AMS/IP Stud. Adv. Math.},
+      volume={36},
+   publisher={Amer. Math. Soc.},
+     address={Providence, RI},},
+}
+")
 
-(setq entry (reftex-parse-amsref-entry amsrefs-entry))
+
+
+(setq entry (amsreftex-parse-entry amsrefs-entry-1))
 
 (reftex-format-amsrefs-entry entry)
+
+
+
+
 
