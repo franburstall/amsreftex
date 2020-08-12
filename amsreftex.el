@@ -4,7 +4,7 @@
 ;;                
 ;; Author:        Fran Burstall <feb@maths.bath.ac.uk>
 ;; Created at:    Wed Jan  3 21:29:31 2018
-;; Modified at:   Wed Aug 12 16:00:08 2020
+;; Modified at:   Thu Aug 13 00:23:48 2020
 ;; Modified by:   Fran Burstall <feb@maths.bath.ac.uk>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -73,12 +73,12 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	  (widen)
 	  (if (and from to) (narrow-to-region from to)))
 	(goto-char (point-min))
-	(if (re-search-forward "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{" nil t)
-	    (setq alist
-		  (list
-		   (cons "&type" (downcase (reftex-match-string 2)))
-		   (cons "&key" (reftex-match-string 1)))))
-	(append alist (amsreftex-extract-fields (buffer-string)))))))
+	(when (re-search-forward "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{" nil t)
+	  (setq alist
+		(list
+		 (cons "&type" (downcase (reftex-match-string 2)))
+		 (cons "&key" (reftex-match-string 1))))
+	  (append alist (amsreftex-extract-fields (buffer-string))))))))
 
 ;; reftex-get-bib-field returns the empty string when the field is not
 ;; present.  This makes testing for presence more verbose.  So we
@@ -93,7 +93,9 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
       authors
     (amsreftex-get-bib-field "editors" entry)))
 
-(defun reftex-format-amsrefs-entry (entry)
+
+;; this would be way easier with let-alist and symbols as keys...
+(defun amsreftex-format-entry (entry)
   "Format a amsrefs ENTRY so that it is nice to look at."
   (let*
       ((authors (mapconcat (lambda (author) (car (split-string author ",")))
@@ -153,6 +155,13 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 			 extra))
     (concat key "\n     " authors " " year " " extra "\n     " title "\n\n")))
 
+
+;; Next: search through buffer looking for regexp matches and return
+;; list of matching entries.
+;; - use reftex to provide the regexps
+;; - try and make the resulting list usable by reftex
+
+
 ;; samples for testing
 (setq amsrefs-entry "\\bib{BraDor09}{article}{
       author={Brander, David},
@@ -187,16 +196,13 @@ date={2006},
      address={Providence, RI},},
 }
 ")
-e
+
 
 
 (setq entry (amsreftex-parse-entry amsrefs-entry-1))
 
-(reftex-format-amsrefs-entry entry)
+(amsreftex-format-entry entry)
 
 (cond ((amsreftex-get-bib-field "book-title" entry) "Yes"))
-
-entry
-
 
 (assoc "authors" entry)
