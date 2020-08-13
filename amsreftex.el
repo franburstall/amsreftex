@@ -4,12 +4,15 @@
 ;;                
 ;; Author:        Fran Burstall <feb@maths.bath.ac.uk>
 ;; Created at:    Wed Jan  3 21:29:31 2018
-;; Modified at:   Thu Aug 13 00:23:48 2020
+;; Modified at:   Thu Aug 13 22:30:04 2020
 ;; Modified by:   Fran Burstall <feb@maths.bath.ac.uk>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'cl-lib)
 (require 'reftex)
+
+(defvar amsreftex-bib-start-re "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{"
+  "Regexp matching start of amsrefs entry.")
 
 ;; An amsrefs entry is modelled  by an a-list, collecting authors and editors into
 ;; lists of same.
@@ -73,7 +76,7 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	  (widen)
 	  (if (and from to) (narrow-to-region from to)))
 	(goto-char (point-min))
-	(when (re-search-forward "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{" nil t)
+	(when (re-search-forward amsreftex-bib-start-re nil t)
 	  (setq alist
 		(list
 		 (cons "&type" (downcase (reftex-match-string 2)))
@@ -143,6 +146,10 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 
     (setq authors (reftex-truncate authors 30 t t))
     (when (reftex-use-fonts)
+      ;; don't attach text properties to actual field values
+      (setq key (substring key))
+      (setq title (substring title))
+      ;;  attach text properties
       (put-text-property 0 (length key) 'face reftex-label-face
 			 key)
       (put-text-property 0 (length authors) 'face reftex-bib-author-face
@@ -156,11 +163,76 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
     (concat key "\n     " authors " " year " " extra "\n     " title "\n\n")))
 
 
-;; Next: search through buffer looking for regexp matches and return
+;; Search through buffer looking for regexp matches and return
 ;; list of matching entries.
 ;; - use reftex to provide the regexps
 ;; - try and make the resulting list usable by reftex
 
+;; NEXT: we need our own version of reftex-offer-bib-menu, much of
+;; which we can copy.  Once we have arrived at found-list, we are
+;; pretty much golden.
+
+;; We also need our own version of reftex-format-citation after which
+;; the bibcite cache has a chance of working
+
+;; Should also subvert reftex-get-bib-names:
+(defun amsreftex-get-bib-names (field entry)
+  "Return a list with the author or editor names in ENTRY.
+If FIELD is empty try \"editors\" field."
+  (let ((names (amsreftex-get-bib-field (concat field "s") entry)))
+    (if names
+	names
+      (amsreftex-get-bib-field "editors" entry))))
+
+
+
+
+
+(defun amsreftex--extract-entries (re-list buffer)
+  "Extract amsrefs entries that match all regexps in RE-List from BUFFER."
+  (let (results match-point start-point end-point entry alist
+		(first-re (car re-list))
+		(re-rest (cdr re-list)))
+    (save-excursion
+      (set-buffer buffer)
+      (reftex-with-special-syntax-for-bib
+       (save-excursion
+	 (goto-char (point-min))
+	 (while (re-search-forward first-re nil t)
+	   (catch 'search-again
+	     (setq match-point (point))
+	     (unless (re-search-backward amsreftex-bib-start-re nil t)
+	       (throw 'search-again nil))
+	     (setq start-point (point))
+	     (goto-char (match-end 0))
+	     (condition-case nil
+		 (up-list 1)
+	       (error (goto-char match-point)
+		      (throw 'search-again nil)))
+	     (setq end-point (point))
+
+	     (when (< end-point match-point) ;match not in entry
+	       (goto-char match-point)
+	       (throw 'search-again nil))
+	     ;; we have an entry so check it against the remaining
+	     ;; regexps
+	     (setq entry (buffer-substring-no-properties start-point end-point))
+
+	     (dolist (re re-rest)
+	       (unless (string-match re entry) (throw 'search-again nil)))
+
+	     (setq alist (amsreftex-parse-entry entry))
+	     (push (cons "&entry" entry) alist)
+	     ;; TODO crossref stuff?
+	     (push (cons "&formatted" (amsreftex-format-entry alist))
+		   alist)
+	     (push (amsreftex-get-bib-field "&key" alist) alist)
+
+	     ;; add to the results
+	     (push alist results))))))
+    (nreverse results)
+    ;; sort results?
+    ))
 
 ;; samples for testing
 (setq amsrefs-entry "\\bib{BraDor09}{article}{
