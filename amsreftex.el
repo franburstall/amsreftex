@@ -4,7 +4,7 @@
 ;;                
 ;; Author:        Fran Burstall <feb@maths.bath.ac.uk>
 ;; Created at:    Wed Jan  3 21:29:31 2018
-;; Modified at:   Thu Aug 13 22:30:04 2020
+;; Modified at:   Thu Aug 13 23:26:22 2020
 ;; Modified by:   Fran Burstall <feb@maths.bath.ac.uk>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -163,7 +163,7 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
     (concat key "\n     " authors " " year " " extra "\n     " title "\n\n")))
 
 
-;; Search through buffer looking for regexp matches and return
+;; Search through buffer looking for regexp matches [DONE] and return
 ;; list of matching entries.
 ;; - use reftex to provide the regexps
 ;; - try and make the resulting list usable by reftex
@@ -173,7 +173,9 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 ;; pretty much golden.
 
 ;; We also need our own version of reftex-format-citation after which
-;; the bibcite cache has a chance of working
+;; the bibcite cache has a chance of working.  More generally, there
+;; are various entries we need to inject into the docstruct alist like
+;; 'bib and friends
 
 ;; Should also subvert reftex-get-bib-names:
 (defun amsreftex-get-bib-names (field entry)
@@ -189,7 +191,7 @@ If FIELD is empty try \"editors\" field."
 
 
 (defun amsreftex--extract-entries (re-list buffer)
-  "Extract amsrefs entries that match all regexps in RE-List from BUFFER."
+  "Extract amsrefs entries that match all regexps in RE-LIST from BUFFER."
   (let (results match-point start-point end-point entry alist
 		(first-re (car re-list))
 		(re-rest (cdr re-list)))
