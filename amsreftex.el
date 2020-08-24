@@ -4,7 +4,7 @@
 ;;                
 ;; Author:        Fran Burstall <feb@maths.bath.ac.uk>
 ;; Created at:    Wed Jan  3 21:29:31 2018
-;; Modified at:   Thu Aug 13 23:26:22 2020
+;; Modified at:   Mon Aug 24 13:06:57 2020
 ;; Modified by:   Fran Burstall <feb@maths.bath.ac.uk>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -175,7 +175,8 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 ;; We also need our own version of reftex-format-citation after which
 ;; the bibcite cache has a chance of working.  More generally, there
 ;; are various entries we need to inject into the docstruct alist like
-;; 'bib and friends
+;; 'bib and friends.  Should advise the rescan fn of reftex to keep
+;; things in sync.
 
 ;; Should also subvert reftex-get-bib-names:
 (defun amsreftex-get-bib-names (field entry)
