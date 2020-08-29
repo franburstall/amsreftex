@@ -20,7 +20,48 @@
 
 ;;; Commentary:
 
+;; NEXT:
+;; 1. Rethink what we are doing: elaborate cl-letf tricks are not
+;; necessary.  All we need do is override specific reftex functions.
+;; A macro will eventually do all this for us.  So far, there are just
+;; three functions to override:
+;; - reftex-pop-to-bibtex-entry
+;; - reftex-extract-bib-entries
+;; - reftex-extract-bib-entries-from-thebibliography
+;; while we do something more subtle (too subtle?) with
+;; - reftex-parse-from-file
+;; 2. Make a minor mode and then make the advice conditional on this
+;; mode being active.  [DONE]
+;; 3. Check that our scan advice strategy is not fucking up rescans
+;; 4. A strategy to check coverage: search reftex codebase for regexps
+;; that search for bibtex entries.  These are:
+;; For "@\\":
+;; reftex-pop-to-bibtex-entry [DONE]
+;; reftex-extract-bib-entries [DONE]
+;; reftex-get-crossref-alist
+;; reftex-parse-bibtex-entry [DONE]
+;; reftex-create-bibtex-file
+;;
+;; For "\\bib":
+;; reftex-view-crossref
+;; reftex-pop-to-bibtex-entry [DONE]
+;; reftex-end-of-bib-entry (called by reftex-view-cr-cite and reftex-pop-to-bibtex-entry)
+;; reftex-extract-bib-entries-from-thebibliography [DONE]
+;;
+;; For reftex-bibliography-commands:
+;; reftex-locate-bibliography-files [DONE]
+
+;; 5. Sort out file searching: this is still a mess.  [NO LONGER,
+;; PERHAPS]
+;; 6. Font-lock \bib entries (just for fun and to learn how to do
+;; it).  Extra points for doing something clever with doi and url
+;; 7. Think about more translation of fields to bibtex fields: the
+;; cite-format stuff could access these.
+
+
 ;; 
+
+
 
 ;;; Code:
 
@@ -479,47 +520,6 @@ date={2006},
 (cond ((amsreftex-get-bib-field "book-title" entry) "Yes"))
 
 (assoc "authors" entry)
-
-;; NEXT:
-;; 1. Rethink what we are doing: elaborate cl-letf tricks are not
-;; necessary.  All we need do is override specific reftex functions.
-;; A macro will eventually do all this for us.  So far, there are just
-;; three functions to override:
-;; - reftex-pop-to-bibtex-entry
-;; - reftex-extract-bib-entries
-;; - reftex-extract-bib-entries-from-thebibliography
-;; while we do something more subtle (too subtle?) with
-;; - reftex-parse-from-file
-;; 2. Make a minor mode and then make the advice conditional on this
-;; mode being active. [DONE]
-;; 3. Check that our scan advice strategy is not fucking up rescans
-;; 4. A strategy to check coverage: search reftex codebase for regexps
-;; that search for bibtex entries.  These are:
-;; For "@\\":
-;; reftex-pop-to-bibtex-entry [DONE] 
-;; reftex-extract-bib-entries [DONE] 
-;; reftex-get-crossref-alist
-;; reftex-parse-bibtex-entry [DONE] 
-;; reftex-create-bibtex-file
-;;
-;; For "\\bib":
-;; reftex-view-crossref
-;; reftex-pop-to-bibtex-entry [DONE]
-;; reftex-end-of-bib-entry (called by reftex-view-cr-cite and reftex-pop-to-bibtex-entry)
-;; reftex-extract-bib-entries-from-thebibliography [DONE]
-;;
-;; For reftex-bibliography-commands:
-;; reftex-locate-bibliography-files [DONE]
-
-;; 5. Sort out file searching: this is still a mess. [NO LONGER,
-;; PERHAPS]
-;; 6. Font-lock \bib entries (just for fun and to learn how to do
-;; it).  Extra points for doing something clever with doi and url
-;; 7. Think about more translation of fields to bibtex fields: the
-;; cite-format stuff could access these.
-
-
-;; 
 
 
 
