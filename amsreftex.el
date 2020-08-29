@@ -67,9 +67,66 @@
 
 (require 'cl-lib)
 (require 'reftex)
+(require 'reftex-cite)
+(require 'reftex-parse)
+
+;;; Vars
 
 (defvar amsreftex-bib-start-re "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{"
   "Regexp matching start of amsrefs entry.")
+
+;;; File search
+
+;; Searching for files: we setup the ltb file type for
+;; reftex-locate-file.  For this, it suffices to setup the following
+;; variables:
+(defcustom reftex-ltbpath-environment-variables '("TEXINPUTS")
+  "List of specifications how to retrieve search path for .ltb database files.
+Several entries are possible.
+- If an element is the name of an environment variable, its content is used.
+- If an element starts with an exclamation mark, it is used as a command
+  to retrieve the path.  A typical command with the kpathsearch library would
+  be `!kpsewhich -show-path=.tex'.
+- Otherwise the element itself is interpreted as a path.
+Multiple directories can be separated by the system dependent `path-separator'.
+Directories ending in `//' or `!!' will be expanded recursively.
+See also `reftex-use-external-file-finders'."
+  :group 'reftex-citation-support
+  :group 'reftex-finding-files
+  :set 'reftex-set-dirty
+  :type '(repeat (string :tag "Specification")))
+
+(defvar reftex-ltb-path nil)
+;; initialise them
+(dolist (prop '(status master-dir recursive-path rec-type))
+  (put 'reftex-ltb-path prop nil))
+;; and register file extensions and external finders
+(add-to-list 'reftex-file-extensions '("ltb"  ".ltb"))
+(add-to-list 'reftex-external-file-finders '("ltb" . "kpsewhich %f.ltb"))
+
+;; replacement for reftex-locate-bibliography-files
+(defun amsreftex-locate-bibliography-files (master-dir &optional files)
+  "Scan buffer for bibliography macros and return file list."
+  (unless files
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward
+	      (concat 			;TODO: tidy up this regexp
+	       "\\(^\\)[^%\n\r]*\\\\\\("
+	       "bibselect[*]*"
+	       "\\)\\(\\[.+?\\]\\)?{[ \t]*\\([^}]+\\)")
+	      nil t)
+	(setq files
+	      (append files
+		      (split-string (reftex-match-string 4)
+				    "[ \t\n\r]*,[ \t\n\r]*"))))))
+  (when files
+    (setq files
+          (mapcar
+           (lambda (x)
+             (reftex-locate-file x "ltb" master-dir))
+           files))
+    (delq nil files)))
 
 
 (defun amsreftex-extract-fields (blob &optional prefix)
