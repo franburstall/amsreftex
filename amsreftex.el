@@ -449,29 +449,6 @@ Intended to advise `%s'" new-fn old-fn)
 (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-bibtex-entry)
 
 
-
-
-(defun amsreftex-subvert-reftex-extract-bib-entries (old-fn &rest args)
-  "If `amsreftex-mode' is active, replace OLD-FN with `amsreftex-extract-entries'.
-
-Intended to advise OLD-FN"
-  (if amsreftex-mode
-      (apply #'amsreftex-extract-entries args)
-    (apply old-fn args)))
-
-(advice-add 'reftex-extract-bib-entries :around #'amsreftex-subvert-reftex-extract-bib-entries)
-
-(defun amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography (old-fn &rest args)
-  "If `amsreftex-mode' is active, replace OLD-FN with `amsreftex-extract-entries'.
-
-Intended to advise OLD-FN"
-  (if amsreftex-mode
-      (apply #'amsreftex-extract-entries args)
-    (apply old-fn args)))
-
-(advice-add 'reftex-extract-bib-entries-from-thebibliography :around
-	    #'amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography)
-
 ;; Samples for testing
 (setq amsrefs-entry "\\bib{BraDor09}{article}{
       author={Brander, David},
@@ -497,7 +474,7 @@ date={2006},
        pages={1\\ndash 82},
        review={\\MR{2222512}},
         doi={10.1090/amsip/036/01},
-        book={                  
+        book={
           title={Integrable systems, geometry, and topology},
       editor={Terng, Chuu-Lian},
       series={AMS/IP Stud. Adv. Math.},
