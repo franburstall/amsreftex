@@ -195,6 +195,7 @@ Fields with keys 'author' or 'editor' are collected into a single BibTeX-style f
 	      alist))
       (nreverse alist))))
 
+;; Replacement for reftex-parse-bibtex-entry
 (defun amsreftex-parse-entry (entry &optional from to)
   "Parse amsrefs ENTRY.
 If ENTRY is nil then parse the entry in current buffer between FROM and TO."
@@ -294,8 +295,7 @@ BUFFERS is a list of buffers or file names."
 	buffer1
 	found-list
 	default
-	first-re
-	rest-re)
+	first-re)
     ;; Read a regexp, completing on known citation keys.
     (setq default (regexp-quote (reftex-get-bibkey-default)))
     (setq re-list (reftex--query-search-regexps default))
