@@ -303,8 +303,7 @@ BUFFERS is a list of buffers or file names."
     (if (or (null re-list) (equal re-list '("")))
 	(setq re-list (list default)))
 
-    (setq first-re (car re-list) ; We'll use the first re to find things,
-          rest-re  (cdr re-list))	; the others to narrow down.
+    (setq first-re (car re-list))
     (if (string-match "\\`[ \t]*\\'" (or first-re ""))
         (user-error "Empty regular expression"))
     (if (string-match first-re "")
