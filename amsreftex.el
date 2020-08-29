@@ -75,6 +75,9 @@
 (defvar amsreftex-bib-start-re "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{"
   "Regexp matching start of amsrefs entry.")
 
+;; silence flycheck: this is defined in reftex-parse.
+(defvar reftex--index-tags)
+
 ;;; File search
 
 ;; Searching for files: we setup the ltb file type for
