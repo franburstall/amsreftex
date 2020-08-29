@@ -234,42 +234,6 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
   "Return value of field FIELD in ENTRY or nil if FIELD is not present."
   (cdr (assoc field entry)))
 
-;; Searching for files: we setup the ltb file type for
-;; reftex-locate-file.  For this, it suffices to setup the following
-;; variables:
-(defvar reftex-ltb-path nil)
-(defvar reftex-ltbpath-environment-variables '("TEXINPUTS")
-  "Environment variables containing paths along which to seek amsrefs databases.")
-;; initialise them
-(dolist (prop '(status master-dir recursive-path rec-type))
-  (put 'reftex-ltb-path prop nil))
-;; and register file extensions and external finders
-(add-to-list 'reftex-file-extensions '("ltb"  ".ltb"))
-(add-to-list 'reftex-external-file-finders '("ltb" . "kpsewhich %f.ltb"))
-
-(defun amsreftex-locate-bibliography-files (master-dir &optional files)
-  "Scan buffer for bibliography macros and return file list."
-  (unless files
-    (save-excursion
-      (goto-char (point-min))
-      (while (re-search-forward
-	      (concat 			;TODO: tidy up this regexp
-	       "\\(^\\)[^%\n\r]*\\\\\\("
-	       "bibselect[*]*"
-	       "\\)\\(\\[.+?\\]\\)?{[ \t]*\\([^}]+\\)")
-	      nil t)
-	(setq files
-	      (append files
-		      (split-string (reftex-match-string 4)
-				    "[ \t\n\r]*,[ \t\n\r]*"))))))
-  (when files
-    (setq files
-          (mapcar
-           (lambda (x)
-             (reftex-locate-file x "ltb" master-dir))
-           files))
-    (delq nil files)))
-
 
 (defun amsreftex--extract-entries (re-list buffer)
   "Extract amsrefs entries that match all regexps in RE-LIST from BUFFER."
