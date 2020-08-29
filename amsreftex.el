@@ -346,14 +346,23 @@ BUFFERS is a list of buffers or file names."
      (t found-list))
     ))
 
+;;; Parsing the source file
 
+;; reftex-parse-from-file is a big function but we only have to change
+;; a tiny bit of it (see comment therein) to make it amsrefs-friendly.
 
-(defun amsreftex-subvert-reftex-parse-from-file (old-fn file old-docstruct master-dir)
-  "Additionally add amsref databases to docstruct of FILE created by OLD-FN.
+;; Replacement for reftex-parse-from-file
+(defun amsreftex-parse-from-file (file docstruct master-dir)
+  "Scan the buffer for labels and save them in a list.
 
-Intended to advise `reftex-parse-from-file'."
-  (let ((docstruct (funcall old-fn file old-docstruct master-dir))
-	file-found tmp include-file next-buf buf)
+Additionally add amsref databases."
+  (let ((regexp (reftex-everything-regexp))
+        (bound 0)
+        file-found tmp include-file
+        (level 1)
+        (highest-level 100)
+        toc-entry index-entry next-buf buf)
+
     (catch 'exit
       (setq file-found (reftex-locate-file file "tex" master-dir))
       (if (and (not file-found)
@@ -361,6 +370,7 @@ Intended to advise `reftex-parse-from-file'."
           (setq file-found (buffer-file-name buf)))
 
       (unless file-found
+        (push (list 'file-error file) docstruct)
         (throw 'exit nil))
 
       (save-excursion
@@ -374,41 +384,204 @@ Intended to advise `reftex-parse-from-file'."
 
         ;; Begin of file mark
         (setq file (buffer-file-name))
-        
+        (push (list 'bof file) docstruct)
+
         (reftex-with-special-syntax
          (save-excursion
            (save-restriction
              (widen)
              (goto-char 1)
+
+             (while (re-search-forward regexp nil t)
+
+               (cond
+
+                ((match-end 1)
+                 ;; It is a label
+		 (when (or (null reftex-label-ignored-macros-and-environments)
+			   ;; \label{} defs should always be honored,
+			   ;; just no keyval style [label=foo] defs.
+			   (string-equal "\\label{" (substring (reftex-match-string 0) 0 7))
+                           (if (and (fboundp 'TeX-current-macro)
+                                    (fboundp 'LaTeX-current-environment))
+                               (not (or (member (save-match-data (TeX-current-macro))
+                                                reftex-label-ignored-macros-and-environments)
+                                        (member (save-match-data (LaTeX-current-environment))
+                                                reftex-label-ignored-macros-and-environments)))
+                             t))
+		   (push (reftex-label-info (reftex-match-string 1) file bound)
+			 docstruct)))
+
+                ((match-end 3)
+                 ;; It is a section
+
+		 ;; Use the beginning as bound and not the end
+		 ;; (i.e. (point)) because the section command might
+		 ;; be the start of the current environment to be
+		 ;; found by `reftex-label-info'.
+                 (setq bound (match-beginning 0))
+		 ;; The section regexp matches a character at the end
+		 ;; we are not interested in.  Especially if it is the
+		 ;; backslash of a following macro we want to find in
+		 ;; the next parsing iteration.
+		 (when (eq (char-before) ?\\) (backward-char))
+                 ;; Insert in List
+                 (setq toc-entry (funcall reftex-section-info-function file))
+                 (when (and toc-entry
+                            (eq ;; Either both are t or both are nil.
+                             (= (char-after bound) ?%)
+                             (string-suffix-p ".dtx" file)))
+                   ;; It can happen that section info returns nil
+                   (setq level (nth 5 toc-entry))
+                   (setq highest-level (min highest-level level))
+                   (if (= level highest-level)
+                       (message
+                        "Scanning %s %s ..."
+                        (car (rassoc level reftex-section-levels-all))
+                        (nth 6 toc-entry)))
+
+                   (push toc-entry docstruct)
+                   (setq reftex-active-toc toc-entry)))
+
+                ((match-end 7)
+                 ;; It's an include or input
+                 (setq include-file (reftex-match-string 7))
+                 ;; Test if this file should be ignored
+                 (unless (delq nil (mapcar
+                                    (lambda (x) (string-match x include-file))
+                                    reftex-no-include-regexps))
+                   ;; Parse it
+                   (setq docstruct
+                         (reftex-parse-from-file
+                          include-file
+                          docstruct master-dir))))
+
+                ((match-end 9)
+                 ;; Appendix starts here
+                 (reftex-init-section-numbers nil t)
+                 (push (cons 'appendix t) docstruct))
+
+                ((match-end 10)
+                 ;; Index entry
+                 (when reftex-support-index
+                   (setq index-entry (reftex-index-info file))
+                   (when index-entry
+                     (cl-pushnew (nth 1 index-entry) reftex--index-tags :test #'equal)
+                     (push index-entry docstruct))))
+
+                ((match-end 11)
+                 ;; A macro with label
+                 (save-excursion
+                   (let* ((mac (reftex-match-string 11))
+                          (label (progn (goto-char (match-end 11))
+                                        (save-match-data
+                                          (reftex-no-props
+                                           (reftex-nth-arg-wrapper
+                                            mac)))))
+                          (typekey (nth 1 (assoc mac reftex-env-or-mac-alist)))
+                          (entry (progn (if typekey
+                                            ;; A typing macro
+                                            (goto-char (match-end 0))
+                                          ;; A neutral macro
+                                          (goto-char (match-end 11))
+                                          (reftex-move-over-touching-args))
+                                        (reftex-label-info
+                                         label file bound nil nil))))
+                     (push entry docstruct))))
+                (t (error "This should not happen (reftex-parse-from-file)")))
+               )
+
              ;; Find bibliography statement
-             (when (setq tmp (amsreftex-locate-bibliography-files master-dir))
+             (when (setq tmp (reftex-locate-bibliography-files master-dir))
                (push (cons 'bib tmp) docstruct))
 
              (goto-char 1)
-             (when (re-search-forward
-                    amsreftex-bib-start-re nil t)
+             (when (re-search-forward	;only change for amsrefs!
+                    (concat  "\\(\\(\\`\\|[\n\r]\\)[ \t]*\\\\begin{thebibliography}\\)\\|\\("
+			     amsreftex-bib-start-re
+			     "\\)")
+		    nil t)
                (push (cons 'thebib file) docstruct))
 
-	     ))
-	 
-	 )))
-    ;; Kill the scanned buffer
-    (reftex-kill-temporary-buffers next-buf)
+	     ;; Find external document specifications
+             (goto-char 1)
+             (while (re-search-forward "[\n\r][ \t]*\\\\externaldocument\\(\\[\\([^]]*\\)\\]\\)?{\\([^}]+\\)}" nil t)
+               (push (list 'xr-doc (reftex-match-string 2)
+                           (reftex-match-string 3))
+                     docstruct))
+
+             ;; End of file mark
+             (push (list 'eof file) docstruct)))))
+
+      ;; Kill the scanned buffer
+      (reftex-kill-temporary-buffers next-buf))
+
+    ;; Return the list
     docstruct))
 
+ 
+;; (defun amsreftex-subvert-reftex-parse-from-file (old-fn file old-docstruct master-dir)
+;;   "Additionally add amsref databases to docstruct of FILE created by OLD-FN.
+
+;; Intended to advise `reftex-parse-from-file'."
+;;   (let ((docstruct (funcall old-fn file old-docstruct master-dir))
+;; 	file-found tmp include-file next-buf buf)
+;;     (catch 'exit
+;;       (setq file-found (reftex-locate-file file "tex" master-dir))
+;;       (if (and (not file-found)
+;;                (setq buf (reftex-get-buffer-visiting file)))
+;;           (setq file-found (buffer-file-name buf)))
+
+;;       (unless file-found
+;;         (throw 'exit nil))
+
+;;       (save-excursion
+
+;;         (message "Scanning file %s" file)
+;;         (set-buffer
+;;          (setq next-buf
+;;                (reftex-get-file-buffer-force
+;;                 file-found
+;;                 (not (eq t reftex-keep-temporary-buffers)))))
+
+;;         ;; Begin of file mark
+;;         (setq file (buffer-file-name))
+        
+;;         (reftex-with-special-syntax
+;;          (save-excursion
+;;            (save-restriction
+;;              (widen)
+;;              (goto-char 1)
+;;              ;; Find bibliography statement
+;;              (when (setq tmp (amsreftex-locate-bibliography-files master-dir))
+;;                (push (cons 'bib tmp) docstruct))
+
+;;              (goto-char 1)
+;;              (when (re-search-forward
+;;                     amsreftex-bib-start-re nil t)
+;;                (push (cons 'thebib file) docstruct))
+
+;; 	     ))
+	 
+;; 	 )))
+;;     ;; Kill the scanned buffer
+;;     (reftex-kill-temporary-buffers next-buf)
+;;     docstruct))
+
 ;; Subvert!
-(advice-add 'reftex-parse-from-file :around #'amsreftex-subvert-reftex-parse-from-file)
+;; (advice-add 'reftex-parse-from-file :around #'amsreftex-subvert-reftex-parse-from-file)
 
 ;; Return to status quo ante
 ;; (advice-remove 'reftex-parse-from-file #'amsreftex-subvert-reftex-parse-from-file )
 
+;;; Pop to entry
 
-(defun amsreftex-pop-to-bibtex-entry (key file-list &optional mark-to-kill
-					  highlight item return)
+;; Replacement for reftex-pop-to-bibtex-entry
+(defun amsreftex-pop-to-database-entry (key file-list &optional mark-to-kill
+					    highlight _ return)
   "Find amsrefs KEY in any file in FILE-LIST in another window.
 If MARK-TO-KILL is non-nil, mark new buffer to kill.
 If HIGHLIGHT is non-nil, highlight the match.
-If ITEM in non-nil, search for bibitem instead of database entry.
 If RETURN is non-nil, just return the entry and restore point."
   (let* ((re (concat "\\\\bib[*]?{" (regexp-quote key) "}[ \t]*{\\(\\w+\\)}{"))
          (buffer-conf (current-buffer))
