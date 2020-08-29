@@ -282,7 +282,7 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 (defun amsreftex-extract-entries (buffers)
   "Prompt for regexp and return list of matching entries from BUFFERS.
 BUFFERS is a list of buffers or file names."
-  (let* (re-list
+  (let (re-list
          (buffer-list (if (listp buffers) buffers (list buffers)))
 	 buffer
 	 buffer1
@@ -470,56 +470,6 @@ Intended to advise `%s'" new-fn old-fn)
 (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-bibtex-entry)
 
 
-;; Samples for testing
-(setq amsrefs-entry "\\bib{BraDor09}{article}{
-      author={Brander, David},
-      author={Dorfmeister, Josef},
-       title={Generalized {DPW} method and an application to isometric
-  immersions of space forms},
-        year={2009},
-        ISSN={0025-5874},
-     journal={Math. Z.},
-      volume={262},
-      number={1},
-       pages={143\\ndash 172},
-         url={http://dx.doi.org/10.1007/s00209-008-0367-9},
-      review={\\MR{2491604 (2009m:37186)}},
-}
-")
-
-(setq amsrefs-entry-1 "\\bib{burstall_isothermic_2006}{article}{
-      author={Burstall, F.~E.},
-       title={Isothermic surfaces: conformal geometry, {C}lifford algebras and
-  integrable systems},
-date={2006},
-       pages={1\\ndash 82},
-       review={\\MR{2222512}},
-        doi={10.1090/amsip/036/01},
-        book={
-          title={Integrable systems, geometry, and topology},
-      editor={Terng, Chuu-Lian},
-      series={AMS/IP Stud. Adv. Math.},
-      volume={36},
-   publisher={Amer. Math. Soc.},
-     address={Providence, RI},},
-}
-")
-
-(setq amsrefs-entry-3 "\\bib{San09}{thesis}{
-      author={Santos, Susana},
-       title={Special isothermic surfaces},
-        type={MSc Thesis},
-        date={2009},
-}")
-
-
-(setq entry (amsreftex-parse-entry amsrefs-entry))
-
-(reftex-format-bib-entry (amsreftex-parse-entry amsrefs-entry-1))
-
-(cond ((amsreftex-get-bib-field "book-title" entry) "Yes"))
-
-(assoc "authors" entry)
 
 
 
