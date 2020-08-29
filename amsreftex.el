@@ -631,6 +631,8 @@ amsrefs bibliographies rather than BibTeX ones.
 This is accomplished by advising those functions of the reftex package
 that search or interact with bibliographies.")
 
+
+;;; Subvert relevant reftex functions
 (defmacro amsreftex-subvert-fn (old-fn new-fn)
   "Advise OLD-FN so that it is replaced by NEW-FN if `amsreftex-mode' is active."
   (let ((subvert-fn (intern (format "amsreftex-subvert-%s" old-fn))))
@@ -647,9 +649,12 @@ Intended to advise `%s'" new-fn old-fn)
 
 
 
-(amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-bibtex-entry)
-
-
+(amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
+(amsreftex-subvert-fn reftex-parse-from-file amsreftex-parse-from-file)
+(amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
+(amsreftex-subvert-fn reftex-extract-bib-entries-from-file amsreftex-extract-entries)
+(amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
+(amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
 
 
 
