@@ -128,7 +128,9 @@ See also `reftex-use-external-file-finders'."
            files))
     (delq nil files)))
 
+;;; Parsing databases and extracting entries from them
 
+;; We factor out the extraction of fields from \bib entries.
 (defun amsreftex-extract-fields (blob &optional prefix)
   "Scan string BLOB for key-value pairs and collect these in an a-list.
 
@@ -140,7 +142,7 @@ Fields with keys 'author' or 'editor' are collected into a single BibTeX-style f
     (set-syntax-table reftex-syntax-table-for-bib)
     (insert blob)
     (goto-char (point-min))
-    (let (alist start stop key field authors editors)
+    (let (alist start key field authors editors)
       (while (re-search-forward "\\(\\(?:\\w\\|-\\)+\\)[ \t\n\r]*=[ \t\n\r]*{"
 				nil t)
 	(setq key (downcase (reftex-match-string 1)))
@@ -189,7 +191,6 @@ Fields with keys 'author' or 'editor' are collected into a single BibTeX-style f
 		    (mapconcat #'identity  (nreverse editors) " and "))
 	      alist))
       (nreverse alist))))
-
 
 (defun amsreftex-parse-entry (entry &optional from to)
   "Parse amsrefs ENTRY.
@@ -279,23 +280,25 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
     (nreverse results)
     ))
 
+;; Replacement for both reftex-extract-bib-entries and
+;; reftex-extract-bib-entries-from-thebibliography
 (defun amsreftex-extract-entries (buffers)
   "Prompt for regexp and return list of matching entries from BUFFERS.
 BUFFERS is a list of buffers or file names."
-  (let (re-list
-         (buffer-list (if (listp buffers) buffers (list buffers)))
-	 buffer
-	 buffer1
-         found-list
-	 default
-	 first-re
-	 rest-re)
+  (let ((buffer-list (if (listp buffers) buffers (list buffers)))
+	re-list
+	buffer
+	buffer1
+	found-list
+	default
+	first-re
+	rest-re)
     ;; Read a regexp, completing on known citation keys.
     (setq default (regexp-quote (reftex-get-bibkey-default)))
     (setq re-list (reftex--query-search-regexps default))
 
-    (if (or (null re-list ) (equal re-list '("")))
-        (setq re-list (list default)))
+    (if (or (null re-list) (equal re-list '("")))
+	(setq re-list (list default)))
 
     (setq first-re (car re-list) ; We'll use the first re to find things,
           rest-re  (cdr re-list))	; the others to narrow down.
@@ -307,7 +310,7 @@ BUFFERS is a list of buffers or file names."
     (save-excursion
       (save-window-excursion
 
-        ;; Walk through all bibtex files
+        ;; Walk through all database files
         (while buffer-list
           (setq buffer (car buffer-list)
                 buffer-list (cdr buffer-list))
