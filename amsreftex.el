@@ -264,9 +264,11 @@ BUFFERS is a list of buffers or file names."
   (let* (re-list
          (buffer-list (if (listp buffers) buffers (list buffers)))
 	 buffer
+	 buffer1
          found-list
 	 default
-	 first-re)
+	 first-re
+	 rest-re)
     ;; Read a regexp, completing on known citation keys.
     (setq default (regexp-quote (reftex-get-bibkey-default)))
     (setq re-list (reftex--query-search-regexps default))
@@ -279,7 +281,7 @@ BUFFERS is a list of buffers or file names."
     (if (string-match "\\`[ \t]*\\'" (or first-re ""))
         (user-error "Empty regular expression"))
     (if (string-match first-re "")
-        (user-error "Regular expression matches the empty string."))
+        (user-error "Regular expression matches the empty string"))
 
     (save-excursion
       (save-window-excursion
