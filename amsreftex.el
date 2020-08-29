@@ -622,6 +622,8 @@ If RETURN is non-nil, just return the entry and restore point."
       (set-buffer buffer-conf)
       (error "No amsrefs entry with citation key %s" key))))
 
+;;; Entry point
+;;;###autoload
 (define-minor-mode amsreftex-mode
   "Toggle amsreftex-mode: a minor mode that adjusts `reftex-mode' to use
 amsrefs bibliographies rather than BibTeX ones.
