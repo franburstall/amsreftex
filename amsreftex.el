@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; NEXT:
+;; TO DO:
 ;; 1. Rethink what we are doing: elaborate cl-letf tricks are not
 ;; necessary.  All we need do is override specific reftex functions.
 ;; A macro will eventually do all this for us.  So far, there are just
@@ -51,12 +51,24 @@
 ;; For reftex-bibliography-commands:
 ;; reftex-locate-bibliography-files [DONE]
 
-;; 5. Sort out file searching: this is still a mess.  [NO LONGER,
-;; PERHAPS]
+;; 5. Sort out file searching: this is still a mess.  [FIXED]
 ;; 6. Font-lock \bib entries (just for fun and to learn how to do
 ;; it).  Extra points for doing something clever with doi and url
 ;; 7. Think about more translation of fields to bibtex fields: the
 ;; cite-format stuff could access these.
+
+;; NEXT:
+;; (a) reftex-citation is not working on discOmega.tex [FIXED].
+;; (b) reftex-view-crossref needs work to handle 'thebib situation.
+;; (c) ' ' is not working in reftex-offer-bib-menu: this only started
+;; recently---very puzzling.  Solved: the callback calls
+;; reftex-pop-to-bibtex-buffer from the selection buffer where
+;; amsreftex-mode is not set so the advice doesn't work.  Poo!  Back
+;; to the drawing board.  Will have to unconditionally replace
+;; reftex-pop-to-bibtex-buffer and somehow check whether or not we are
+;; in amsreftex-mode
+;; Idea: put an &database cell into docstructs and entries and
+;; dispatch on that.  There may be an issue with multi-file set-ups.
 
 
 ;; 
@@ -604,6 +616,7 @@ If RETURN is non-nil, just return the entry and restore point."
           (when return
             ;; Just return the relevant entry
 	    (goto-char (match-end 0))
+	    ;; replace this with a good version of reftex-end-of-bib-entry
 	    (condition-case nil
 		(up-list 1)
 	      (error nil))
