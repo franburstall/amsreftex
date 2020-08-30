@@ -662,12 +662,12 @@ Intended to advise `%s'" new-fn old-fn)
 
 
 
-(amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
-(amsreftex-subvert-fn reftex-parse-from-file amsreftex-parse-from-file)
-(amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
-(amsreftex-subvert-fn reftex-extract-bib-entries-from-file amsreftex-extract-entries)
 (amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
 (amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
+(amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
+(amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
+(amsreftex-subvert-fn reftex-parse-from-file amsreftex-parse-from-file)
+(amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
 
 
 
