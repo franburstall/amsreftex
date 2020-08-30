@@ -360,11 +360,21 @@ BUFFERS is a list of buffers or file names."
 
 ;;; Parsing the source file
 
+(defun amsreftex-using-amsrefs-p ()
+  "Return non-nil if we seem to be using amsrefs databases."
+  (save-excursion
+    (goto-char (point-min))
+    (re-search-forward
+     (concat 
+      "\\(^[^%\n]*?\\\\bibselect\\|"
+      amsreftex-bib-start-re "\\)")
+     nil t)))
+
 ;; reftex-parse-from-file is a big function but we only have to change
 ;; a tiny bit of it (see comment therein) to make it amsrefs-friendly.
 
 ;; Replacement for reftex-parse-from-file
-(defun amsreftex-parse-from-file (file docstruct master-dir)
+(defun reftex-parse-from-file (file docstruct master-dir)
   "Scan the buffer for labels and save them in a list.
 
 Additionally add amsref databases."
@@ -503,17 +513,26 @@ Additionally add amsref databases."
                 (t (error "This should not happen (reftex-parse-from-file)")))
                )
 
-             ;; Find bibliography statement
-             (when (setq tmp (reftex-locate-bibliography-files master-dir))
-               (push (cons 'bib tmp) docstruct))
+	     ;; amsreftex changes start here
+	     (cond
+	      ((amsreftex-using-amsrefs-p)
+	       (push (cons 'database "amsrefs") docstruct)
+	       ;; Find amsrefs bibliography statement
+	       (when (setq tmp (amsreftex-locate-bibliography-files master-dir))
+		 (push (cons 'bib tmp) docstruct)))
+	      (t
+               ;; Find bib(la)tex bibliography statement
+               (when (setq tmp (reftex-locate-bibliography-files master-dir))
+		 (push (cons 'bib tmp) docstruct))))
 
              (goto-char 1)
-             (when (re-search-forward	;only change for amsrefs!
+             (when (re-search-forward
                     (concat  "\\(\\(\\`\\|[\n\r]\\)[ \t]*\\\\begin{thebibliography}\\)\\|\\("
 			     amsreftex-bib-start-re
 			     "\\)")
 		    nil t)
                (push (cons 'thebib file) docstruct))
+	     ;; amsreftex changes end here
 
 	     ;; Find external document specifications
              (goto-char 1)
@@ -532,61 +551,11 @@ Additionally add amsref databases."
     docstruct))
 
  
-;; (defun amsreftex-subvert-reftex-parse-from-file (old-fn file old-docstruct master-dir)
-;;   "Additionally add amsref databases to docstruct of FILE created by OLD-FN.
 
-;; Intended to advise `reftex-parse-from-file'."
-;;   (let ((docstruct (funcall old-fn file old-docstruct master-dir))
-;; 	file-found tmp include-file next-buf buf)
-;;     (catch 'exit
-;;       (setq file-found (reftex-locate-file file "tex" master-dir))
-;;       (if (and (not file-found)
-;;                (setq buf (reftex-get-buffer-visiting file)))
-;;           (setq file-found (buffer-file-name buf)))
-
-;;       (unless file-found
-;;         (throw 'exit nil))
-
-;;       (save-excursion
-
-;;         (message "Scanning file %s" file)
-;;         (set-buffer
-;;          (setq next-buf
-;;                (reftex-get-file-buffer-force
-;;                 file-found
-;;                 (not (eq t reftex-keep-temporary-buffers)))))
-
-;;         ;; Begin of file mark
-;;         (setq file (buffer-file-name))
-        
-;;         (reftex-with-special-syntax
-;;          (save-excursion
-;;            (save-restriction
-;;              (widen)
-;;              (goto-char 1)
-;;              ;; Find bibliography statement
-;;              (when (setq tmp (amsreftex-locate-bibliography-files master-dir))
-;;                (push (cons 'bib tmp) docstruct))
-
-;;              (goto-char 1)
-;;              (when (re-search-forward
-;;                     amsreftex-bib-start-re nil t)
-;;                (push (cons 'thebib file) docstruct))
-
-;; 	     ))
-	 
-;; 	 )))
-;;     ;; Kill the scanned buffer
-;;     (reftex-kill-temporary-buffers next-buf)
-;;     docstruct))
-
-;; Subvert!
-;; (advice-add 'reftex-parse-from-file :around #'amsreftex-subvert-reftex-parse-from-file)
-
-;; Return to status quo ante
-;; (advice-remove 'reftex-parse-from-file #'amsreftex-subvert-reftex-parse-from-file )
 
 ;;; Pop to entry
+
+;; Replace the callback...
 
 ;; Replacement for reftex-pop-to-bibtex-entry
 (defun amsreftex-pop-to-database-entry (key file-list &optional mark-to-kill
@@ -636,13 +605,13 @@ If RETURN is non-nil, just return the entry and restore point."
       (error "No amsrefs entry with citation key %s" key))))
 
 ;;; Entry point
-;;;###autoload
-(define-minor-mode amsreftex-mode
-  "Toggle amsreftex-mode: a minor mode that adjusts `reftex-mode' to use
-amsrefs bibliographies rather than BibTeX ones.
 
-This is accomplished by advising those functions of the reftex package
-that search or interact with bibliographies.")
+;; (define-minor-mode amsreftex-mode
+;;   "Toggle amsreftex-mode: a minor mode that adjusts `reftex-mode' to use
+;; amsrefs bibliographies rather than BibTeX ones.
+
+;; This is accomplished by advising those functions of the reftex package
+;; that search or interact with bibliographies.")
 
 
 ;;; Subvert relevant reftex functions
@@ -654,7 +623,7 @@ that search or interact with bibliographies.")
 	 ,(format "If `amsreftex-mode' is active, replace OLD-FN with `%s'.
 
 Intended to advise `%s'" new-fn old-fn)
-	 (if amsreftex-mode
+	 (if (assq 'database (symbol-value reftex-docstruct-symbol))
 	     (apply #',new-fn args)
 	   (apply old-fn args)))
        
@@ -666,8 +635,7 @@ Intended to advise `%s'" new-fn old-fn)
 (amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
 (amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
 (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
-(amsreftex-subvert-fn reftex-parse-from-file amsreftex-parse-from-file)
-(amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
+;; (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
 
 
 
