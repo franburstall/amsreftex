@@ -541,9 +541,61 @@ Additionally add amsref databases."
  
 
 
-;;; Pop to entry
+;;; Pop to entry and echo citations
 
-;; Replace the callback...
+;; Replace the callback...the issue here is that this callback may be
+;; called in a context (the Ref-Select buffer) where we have no access
+;; to the reftex-docstruct-symbol of the document buffer.  This means
+;; our usual advice method applied to reftex-pop-to-bibtex-entry may
+;; not apply so we must test for amsrefs in a different way (by
+;; inpsecting the format of the entry) and manually choose the
+;; function for popping to the entry.
+
+(defun amsreftex-database-selection-callback (data _ignore no-revisit)
+  "Callback function to be called from the Reftex-Select selection, in
+order to display context.  This function is relatively slow and not
+recommended for follow mode.  It works OK for individual lookups.
+
+This version also tests whether amsrefs databases are in use and
+dispatches the pop-to-entry function based on that."
+  (let ((win (selected-window))
+        (key (reftex-get-bib-field "&key" data))
+	(amsrefs (string-match amsreftex-bib-start-re
+			       (reftex-get-bib-field "&entry" data)))
+        bibfile-list item bibtype pop-fn)
+
+    (setq pop-fn (if amsrefs
+		     #'amsreftex-pop-to-database-entry
+		   #'reftex-pop-to-bibtex-entry))
+
+    (catch 'exit
+      (with-current-buffer reftex-call-back-to-this-buffer
+        (setq bibtype (reftex-bib-or-thebib))
+        (cond
+         ((eq bibtype 'bib)
+					;        ((assq 'bib (symbol-value reftex-docstruct-symbol))
+          (setq bibfile-list (reftex-get-bibfile-list)))
+         ((eq bibtype 'thebib)
+					;        ((assq 'thebib (symbol-value reftex-docstruct-symbol))
+          (setq bibfile-list
+                (reftex-uniquify
+                 (mapcar 'cdr
+                         (reftex-all-assq
+                          'thebib (symbol-value reftex-docstruct-symbol))))
+                item t))
+         (reftex-default-bibliography
+          (setq bibfile-list (reftex-default-bibliography)))
+         (t (ding) (throw 'exit nil))))
+
+      (when no-revisit
+        (setq bibfile-list (reftex-visited-files bibfile-list)))
+
+      (condition-case nil
+          (funcall pop-fn
+		   key bibfile-list (not reftex-keep-temporary-buffers) t item)
+        (error (ding))))
+
+    (select-window win)))
 
 ;; Replacement for reftex-pop-to-bibtex-entry
 (defun amsreftex-pop-to-database-entry (key file-list &optional mark-to-kill
@@ -573,7 +625,7 @@ If RETURN is non-nil, just return the entry and restore point."
           (when return
             ;; Just return the relevant entry
 	    (goto-char (match-end 0))
-	    ;; replace this with a good version of reftex-end-of-bib-entry
+	    ;; could replace this with a good version of reftex-end-of-bib-entry
 	    (condition-case nil
 		(up-list 1)
 	      (error nil))
@@ -625,6 +677,7 @@ Intended to advise `%s'" new-fn old-fn)
 (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
 ;; (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
 
+(advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback)
 
 
 (provide 'amsreftex)
