@@ -676,14 +676,6 @@ Intended to advise `reftex-echo-cite'."
     (setf (elt args 2) nil))
   (apply old-fn args))
 
-;;; Entry point
-
-;; (define-minor-mode amsreftex-mode
-;;   "Toggle amsreftex-mode: a minor mode that adjusts `reftex-mode' to use
-;; amsrefs bibliographies rather than BibTeX ones.
-
-;; This is accomplished by advising those functions of the reftex package
-;; that search or interact with bibliographies.")
 
 
 ;;; Subvert relevant reftex functions
