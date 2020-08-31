@@ -32,7 +32,7 @@
 ;; reftex-create-bibtex-file
 ;;
 ;; For "\\bib":
-;; reftex-view-crossref.  Q: what does this do on a bibitem?
+;; reftex-view-crossref.  Q: what does this do on a bibitem? A: show a \cite.
 ;; reftex-pop-to-bibtex-entry [DONE]
 ;; reftex-end-of-bib-entry (called by reftex-view-cr-cite and reftex-pop-to-bibtex-entry)
 ;; reftex-extract-bib-entries-from-thebibliography [DONE]
@@ -47,7 +47,9 @@
 ;; cite-format stuff could access these.
 
 ;; NEXT:
-;; (a) reftex-view-crossref needs work to handle 'thebib situation.
+;; (a) Font-lock: add it to a mode-hook?
+;; (b) reftex-create-bibtex-file
+;; (c) Crossref stuff...reftex-get-crossref-alist, reftex-view-cr-cite
 ;; 
 ;; 
 
