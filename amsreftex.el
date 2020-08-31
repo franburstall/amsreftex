@@ -674,7 +674,7 @@ Intended to advise `reftex-echo-cite'."
   (let ((subvert-fn (intern (format "amsreftex-subvert-%s" old-fn))))
     `(progn
        (defun ,subvert-fn (old-fn &rest args)
-	 ,(format "If `amsreftex-mode' is active, replace OLD-FN with `%s'.
+	 ,(format "If amsrefs databases are in use,, replace OLD-FN with `%s'.
 
 Intended to advise `%s'" new-fn old-fn)
 	 (if (assq 'database (symbol-value reftex-docstruct-symbol))
