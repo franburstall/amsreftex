@@ -21,18 +21,7 @@
 ;;; Commentary:
 
 ;; TO DO:
-;; 1. Rethink what we are doing: elaborate cl-letf tricks are not
-;; necessary.  All we need do is override specific reftex functions.
-;; A macro will eventually do all this for us.  So far, there are just
-;; three functions to override:
-;; - reftex-pop-to-bibtex-entry
-;; - reftex-extract-bib-entries
-;; - reftex-extract-bib-entries-from-thebibliography
-;; while we do something more subtle (too subtle?) with
-;; - reftex-parse-from-file
-;; 2. Make a minor mode and then make the advice conditional on this
-;; mode being active.  [DONE]
-;; 3. Check that our scan advice strategy is not fucking up rescans
+
 ;; 4. A strategy to check coverage: search reftex codebase for regexps
 ;; that search for bibtex entries.  These are:
 ;; For "@\\":
@@ -64,11 +53,10 @@
 ;; recently---very puzzling.  Solved: the callback calls
 ;; reftex-pop-to-bibtex-buffer from the selection buffer where
 ;; amsreftex-mode is not set so the advice doesn't work.  Poo!  Back
-;; to the drawing board.  Will have to unconditionally replace
-;; reftex-pop-to-bibtex-buffer and somehow check whether or not we are
-;; in amsreftex-mode
+;; to the drawing board.  
 ;; Idea: put an &database cell into docstructs and entries and
-;; dispatch on that.  There may be an issue with multi-file set-ups.
+;; dispatch on that.  There may be an issue with multi-file set-ups
+;; (it doesn't).  Now fix the callback to dispatch the pop-fn somehow.
 
 
 ;; 
