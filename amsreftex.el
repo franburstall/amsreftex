@@ -53,7 +53,7 @@
 ;; recently---very puzzling.  Solved: the callback calls
 ;; reftex-pop-to-bibtex-buffer from the selection buffer where
 ;; amsreftex-mode is not set so the advice doesn't work.  Poo!  Back
-;; to the drawing board.  
+;; to the drawing board.
 ;; Idea: put an &database cell into docstructs and entries and
 ;; dispatch on that.  There may be an issue with multi-file set-ups
 ;; (it doesn't).  Now fix the callback to dispatch the pop-fn somehow.
@@ -110,7 +110,11 @@ See also `reftex-use-external-file-finders'."
 
 ;; replacement for reftex-locate-bibliography-files
 (defun amsreftex-locate-bibliography-files (master-dir &optional files)
-  "Scan buffer for bibliography macros and return file list."
+  "Scan buffer for bibliography macros and return file list.
+
+Use MASTER-DIR as root for relative paths during file-search.
+
+If FILES is present, list these instead."
   (unless files
     (save-excursion
       (goto-char (point-min))
@@ -354,7 +358,7 @@ BUFFERS is a list of buffers or file names."
   (save-excursion
     (goto-char (point-min))
     (re-search-forward
-     (concat 
+     (concat
       "\\(^[^%\n]*?\\\\bibselect\\|"
       amsreftex-bib-start-re "\\)")
      nil t)))
@@ -364,7 +368,9 @@ BUFFERS is a list of buffers or file names."
 
 ;; Replacement for reftex-parse-from-file
 (defun reftex-parse-from-file (file docstruct master-dir)
-  "Scan the buffer for labels and save them in a list.
+  "Scan the buffer of FILE for labels and save them in a list DOCSTRUCT.
+
+Use MASTER-DIR as root for relative paths during file-search.
 
 Additionally add amsref databases."
   (let ((regexp (reftex-everything-regexp))
@@ -553,7 +559,11 @@ Additionally add amsref databases."
 ;; function for popping to the entry.
 
 (defun amsreftex-database-selection-callback (data _ignore no-revisit)
-  "Callback function to be called from the Reftex-Select selection, in
+  "Display database entry corresponding to DATA.
+
+If NO-REVISIT is non-nil, only search existing buffers.
+
+Callback function to be called from the Reftex-Select selection, in
 order to display context.  This function is relatively slow and not
 recommended for follow mode.  It works OK for individual lookups.
 
@@ -648,7 +658,7 @@ If RETURN is non-nil, just return the entry and restore point."
 ;; reftex-echo-cite has to treat the case of onboard \bibitems
 ;; separately and uses the ITEM flag for this.  We just set ITEM to nil.
 (defun amsreftex-echo-cite (key files _item)
-  "Show citation in the echo area.
+  "Show citation for KEY in the echo area, searching FILES to find it.
 
 Ignores the ITEM argument which is unnecessary for amsrefs databases."
   (reftex-echo-cite (key files nil)))
