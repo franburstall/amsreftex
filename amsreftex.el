@@ -1,4 +1,4 @@
-;;; amsreftex.el --- Minor mode to allow reftex to use amsrefs bibliographies  -*- lexical-binding: t; -*-
+;;; amsreftex.el --- Library to enable reftex to use amsrefs bibliographies  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020  Fran Burstall
 
@@ -32,7 +32,7 @@
 ;; reftex-create-bibtex-file
 ;;
 ;; For "\\bib":
-;; reftex-view-crossref
+;; reftex-view-crossref.  Q: what does this do on a bibitem?
 ;; reftex-pop-to-bibtex-entry [DONE]
 ;; reftex-end-of-bib-entry (called by reftex-view-cr-cite and reftex-pop-to-bibtex-entry)
 ;; reftex-extract-bib-entries-from-thebibliography [DONE]
@@ -46,17 +46,10 @@
 ;; 7. Think about more translation of fields to bibtex fields: the
 ;; cite-format stuff could access these.
 
-;; NEXT:
-;; (a) reftex-citation is not working on discOmega.tex [FIXED].
-;; (b) reftex-view-crossref needs work to handle 'thebib situation.
-;; (c) ' ' is not working in reftex-offer-bib-menu: this only started
-;; recently---very puzzling.  Solved: the callback calls
-;; reftex-pop-to-bibtex-buffer from the selection buffer where
-;; amsreftex-mode is not set so the advice doesn't work.  Poo!  Back
-;; to the drawing board.
-;; Idea: put an &database cell into docstructs and entries and
-;; dispatch on that.  There may be an issue with multi-file set-ups
-;; (it doesn't).  Now fix the callback to dispatch the pop-fn somehow.
+;; NEXT: 
+;; (a) reftex-view-crossref needs work to handle 'thebib situation.
+;; 
+;; 
 
 
 ;; 
