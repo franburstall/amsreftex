@@ -40,9 +40,11 @@
 ;; For reftex-bibliography-commands:
 ;; reftex-locate-bibliography-files [DONE]
 
-;; 5. Sort out file searching: this is still a mess.  [FIXED]
 ;; 6. Font-lock \bib entries (just for fun and to learn how to do
-;; it).  Extra points for doing something clever with doi and url
+;; it). [DONE] Extra points for doing something clever with doi and
+;; url: this looks more complicated.  Maybe we need a amsref-ltb mode
+;; that derives from bibtex-mode?  Also, if we are doing clever
+;; things, what about review field?
 ;; 7. Think about more translation of fields to bibtex fields: the
 ;; cite-format stuff could access these.
 
@@ -68,11 +70,26 @@
 
 ;;; Vars
 
-(defvar amsreftex-bib-start-re "\\\\bib[*]?{\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{"
+(defvar amsreftex-bib-start-re "\\(\\\\bib[*]?\\){\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{"
   "Regexp matching start of amsrefs entry.")
+
+(defvar amsreftex-kv-start-re "\\(\\(?:\\w\\|-\\)+\\)[ \t\n\r]*=[ \t\n\r]*{"
+  "Regexp matching start of key-val pair in amsrefs entry.")
 
 ;; silence flycheck: this is defined in reftex-parse.
 (defvar reftex--index-tags)
+
+;;; Fontification
+(defvar amsreftex-font-lock-keywords
+  `(
+    (,amsreftex-bib-start-re (1 font-lock-keyword-face) (2 font-lock-type-face) (3 font-lock-function-name-face))
+    (,amsreftex-kv-start-re (1 font-lock-variable-name-face))))
+
+(defun amsreftex-fontify-database-entries ()
+  "Fontify \\bib macros."
+  (font-lock-add-keywords nil amsreftex-font-lock-keywords))
+
+(add-hook 'reftex-mode-hook #'amsreftex-fontify-database-entries)
 
 ;;; File search
 
@@ -146,8 +163,7 @@ Fields with keys 'author' or 'editor' are collected into a single BibTeX-style f
     (insert blob)
     (goto-char (point-min))
     (let (alist start key field authors editors)
-      (while (re-search-forward "\\(\\(?:\\w\\|-\\)+\\)[ \t\n\r]*=[ \t\n\r]*{"
-				nil t)
+      (while (re-search-forward amsreftex-kv-start-re nil t)
 	(setq key (downcase (reftex-match-string 1)))
 	;; (forward-char 1)
 	(setq start (point))
@@ -215,8 +231,8 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	(when (re-search-forward amsreftex-bib-start-re nil t)
 	  (setq alist
 		(list
-		 (cons "&type" (downcase (reftex-match-string 2)))
-		 (cons "&key" (reftex-match-string 1))))
+		 (cons "&type" (downcase (reftex-match-string 3)))
+		 (cons "&key" (reftex-match-string 2))))
 	  (setq alist (append alist (amsreftex-extract-fields (buffer-string))))
 	  ;; split thesis type into phdthesis and mastersthesis
 	  (when (equal "thesis" (amsreftex-get-bib-field "&type" alist))
