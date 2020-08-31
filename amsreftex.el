@@ -69,6 +69,7 @@
 (require 'reftex)
 (require 'reftex-cite)
 (require 'reftex-parse)
+(require 'reftex-dcr)
 
 ;;; Vars
 
