@@ -644,6 +644,14 @@ If RETURN is non-nil, just return the entry and restore point."
       (set-buffer buffer-conf)
       (error "No amsrefs entry with citation key %s" key))))
 
+;; reftex-echo-cite has to treat the case of onboard \bibitems
+;; separately and uses the ITEM flag for this.  We just set ITEM to nil.
+(defun amsreftex-echo-cite (key files _item)
+  "Show citation in the echo area.
+
+Ignores the ITEM argument which is unnecessary for amsrefs databases."
+  (reftex-echo-cite (key files nil)))
+
 ;;; Entry point
 
 ;; (define-minor-mode amsreftex-mode
@@ -675,7 +683,8 @@ Intended to advise `%s'" new-fn old-fn)
 (amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
 (amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
 (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
-;; (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
+(amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
+(amsreftex-subvert-fn reftex-echo-cite amsreftex-echo-cite)
 
 (advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback)
 
