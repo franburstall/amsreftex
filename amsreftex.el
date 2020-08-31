@@ -661,7 +661,7 @@ If RETURN is non-nil, just return the entry and restore point."
   "Show citation for KEY in the echo area, searching FILES to find it.
 
 Ignores the ITEM argument which is unnecessary for amsrefs databases."
-  (reftex-echo-cite (key files nil)))
+  (reftex-echo-cite key files nil))
 
 ;;; Entry point
 
