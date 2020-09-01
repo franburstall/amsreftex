@@ -675,8 +675,8 @@ If RETURN is non-nil, just return the entry and restore point."
           (setq pos (point))
           (when return
             ;; Just return the relevant entry
-	    (goto-char (match-end 0))
-	    (setq end (reftex-end-of-bib-entry nil))
+	    (goto-char (1- (match-end 0)))
+	    (setq end (reftex-end-of-bib-entry nil)) ; does forward-list
 	    (setq return (buffer-substring
                           pos end))
 	    (goto-char oldpos) ;; restore point.
