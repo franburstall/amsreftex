@@ -273,10 +273,14 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	 (while (re-search-forward first-re nil t)
 	   (catch 'search-again
 	     (setq match-point (point))
-	     (unless (re-search-backward amsreftex-bib-start-re nil t)
+	     ;; look for start of \bib, taking care since the match
+	     ;; could be the cite-key and so be missing by
+	     ;; re-search-backward on amsreftex-bib-start-re
+	     (unless (re-search-backward  "^[^%\n]*?\\\\bib[ \t]*{"  nil t)
 	       (throw 'search-again nil))
 	     (setq start-point (point))
-	     (goto-char (match-end 0))
+	     ;; go to end of first line of entry
+	     (re-search-forward amsreftex-bib-start-re nil t)
 	     (condition-case nil
 		 (up-list 1)
 	       (error (goto-char match-point)
@@ -297,9 +301,9 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	     (push (cons "&entry" entry) alist)
 	     ;; crossref stuff
 	     (if (assoc "xref" alist)
-                     (setq alist
-                           (append
-                            alist (amsreftex-get-crossref-alist alist))))
+                 (setq alist
+                       (append
+                        alist (amsreftex-get-crossref-alist alist))))
 	     (push (cons "&formatted" (reftex-format-bib-entry alist))
 		   alist)
 	     (push (amsreftex-get-bib-field "&key" alist) alist)
