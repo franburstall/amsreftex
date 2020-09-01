@@ -29,12 +29,13 @@
 ;; reftex-extract-bib-entries [DONE]
 ;; reftex-get-crossref-alist
 ;; reftex-parse-bibtex-entry [DONE]
-;; reftex-create-bibtex-file
+;; reftex-create-bibtex-file [IGNORED]
 ;;
 ;; For "\\bib":
 ;; reftex-view-crossref.  Q: what does this do on a bibitem? A: show a \cite.
 ;; reftex-pop-to-bibtex-entry [DONE]
-;; reftex-end-of-bib-entry (called by reftex-view-cr-cite and reftex-pop-to-bibtex-entry)
+;; reftex-end-of-bib-entry (called by reftex-view-cr-cite (to get a
+;; tmp window height) and reftex-pop-to-bibtex-entry)
 ;; reftex-extract-bib-entries-from-thebibliography [DONE]
 ;;
 ;; For reftex-bibliography-commands:
@@ -49,8 +50,9 @@
 ;; cite-format stuff could access these.
 
 ;; NEXT:
-;; (a) Font-lock: add it to a mode-hook?
-;; (b) reftex-create-bibtex-file
+;; (a) Font-lock: add it to a mode-hook? [DONE]
+;; (b) reftex-create-bibtex-file.  This is really superfluous for
+;; amsrefs: the .bbl file already has the database ready to roll.
 ;; (c) Crossref stuff...reftex-get-crossref-alist, reftex-view-cr-cite
 ;; 
 ;; 
