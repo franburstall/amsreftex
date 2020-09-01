@@ -40,12 +40,6 @@
 ;;
 ;; For reftex-bibliography-commands:
 ;; reftex-locate-bibliography-files [DONE]
-
-;; 6. Font-lock \bib entries (just for fun and to learn how to do
-;; it). [DONE] Extra points for doing something clever with doi and
-;; url: this looks more complicated.  Maybe we need a amsref-ltb mode
-;; that derives from bibtex-mode?  Also, if we are doing clever
-;; things, what about review field?
 ;; 7. Think about more translation of fields to bibtex fields: the
 ;; cite-format stuff could access these.
 
@@ -53,7 +47,7 @@
 ;; (a) Font-lock: add it to a mode-hook? [DONE]
 ;; (b) reftex-create-bibtex-file.  This is really superfluous for
 ;; amsrefs: the .bbl file already has the database ready to roll.
-;; (c) Crossref stuff...reftex-get-crossref-alist, reftex-view-cr-cite
+;; (c) Crossref stuff...reftex-get-crossref-alist [DONE] , reftex-view-cr-cite
 ;; 
 ;; 
 
@@ -682,11 +676,7 @@ If RETURN is non-nil, just return the entry and restore point."
           (when return
             ;; Just return the relevant entry
 	    (goto-char (match-end 0))
-	    ;; could replace this with a good version of reftex-end-of-bib-entry
-	    (condition-case nil
-		(up-list 1)
-	      (error nil))
-	    (setq end (point))
+	    (setq end (reftex-end-of-bib-entry nil))
 	    (setq return (buffer-substring
                           pos end))
 	    (goto-char oldpos) ;; restore point.
@@ -701,19 +691,9 @@ If RETURN is non-nil, just return the entry and restore point."
       (set-buffer buffer-conf)
       (error "No amsrefs entry with citation key %s" key))))
 
-;; reftex-echo-cite has to treat the case of onboard \bibitems
-;; separately and uses the ITEM flag for this.  We just set ITEM to nil.
-(defun amsreftex-subvert-reftex-echo-cite (old-fn &rest args)
-  "If amsrefs databases are in use, set third element of ARGS of OLD-FN to nil.
-
-Intended to advise `reftex-echo-cite'."
-  (when (assq 'database (symbol-value reftex-docstruct-symbol))
-    (setf (elt args 2) nil))
-  (apply old-fn args))
-
-
 
 ;;; Subvert relevant reftex functions
+
 (defmacro amsreftex-subvert-fn (old-fn new-fn)
   "Advise OLD-FN so that it is replaced by NEW-FN if `amsreftex-mode' is active."
   (let ((subvert-fn (intern (format "amsreftex-subvert-%s" old-fn))))
@@ -728,14 +708,23 @@ Intended to advise `%s'" new-fn old-fn)
        
        (advice-add ',old-fn :around #',subvert-fn))))
 
-
-
 (amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
 (amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
 (amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
 (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
 (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
-(advice-add 'reftex-echo-cite :around #'amsreftex-subvert-reftex-echo-cite)
+
+;; Both reftex-echo-cite and reftex-end-of-bib-entry have a last
+;; argument ITEM for dealing with the case of on-board \bibitems.  We
+;; set this argument to nil.
+(defun amsreftex-set-last-arg-to-nil (args)
+  "If amsrefs databases are in use, set last element of ARGS to nil."
+  (when (assq 'database (symbol-value reftex-docstruct-symbol))
+    (setf (car (last args)) nil))
+  args)
+
+(advice-add 'reftex-echo-cite :filter-args #'amsreftex-set-last-arg-to-nil)
+(advice-add 'reftex-end-of-bib-entry :filter-args #'amsreftex-set-last-arg-to-nil)
 
 (advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback)
 
