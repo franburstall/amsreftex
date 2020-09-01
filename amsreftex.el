@@ -81,19 +81,22 @@
 ;; silence flycheck: this is defined in reftex-parse.
 (defvar reftex--index-tags)
 
-;;; Fontification
+;; Fontification
 (defvar amsreftex-font-lock-keywords
   `(
     (,amsreftex-bib-start-re (1 font-lock-keyword-face) (2 font-lock-type-face) (3 font-lock-function-name-face))
     (,amsreftex-kv-start-re (1 font-lock-variable-name-face))))
 
-(defun amsreftex-fontify-database-entries ()
-  "Fontify \\bib macros."
-  (font-lock-add-keywords nil amsreftex-font-lock-keywords))
 
-(add-hook 'reftex-mode-hook #'amsreftex-fontify-database-entries)
 
-;;; File search
+;;; Files and file search
+
+;; amsrefs uses .ltb files for its databases.  These are essentially
+;; LaTeX files so treat them as such:
+(cl-pushnew '("\\.ltb\\'" . latex-mode) auto-mode-alist :test 'equal)
+
+;; and add some fontification for \bib macros
+(font-lock-add-keywords 'latex-mode amsreftex-font-lock-keywords)
 
 ;; Searching for files: we setup the ltb file type for
 ;; reftex-locate-file.  For this, it suffices to setup the following
