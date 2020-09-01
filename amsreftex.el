@@ -27,7 +27,7 @@
 ;; For "@\\":
 ;; reftex-pop-to-bibtex-entry [DONE]
 ;; reftex-extract-bib-entries [DONE]
-;; reftex-get-crossref-alist
+;; reftex-get-crossref-alist [DONE: no need to subvert]
 ;; reftex-parse-bibtex-entry [DONE]
 ;; reftex-create-bibtex-file [IGNORED]
 ;;
@@ -295,7 +295,11 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 
 	     (setq alist (amsreftex-parse-entry entry))
 	     (push (cons "&entry" entry) alist)
-	     ;; TODO crossref stuff?
+	     ;; crossref stuff
+	     (if (assoc "xref" alist)
+                     (setq alist
+                           (append
+                            alist (amsreftex-get-crossref-alist alist))))
 	     (push (cons "&formatted" (reftex-format-bib-entry alist))
 		   alist)
 	     (push (amsreftex-get-bib-field "&key" alist) alist)
@@ -366,6 +370,28 @@ BUFFERS is a list of buffers or file names."
       (sort found-list 'reftex-bib-sort-year-reverse))
      (t found-list))
     ))
+
+(defun amsreftex-get-crossref-alist (entry)
+  "Return the alist from a crossref ENTRY."
+  (let ((crkey (cdr (assoc "xref" entry)))
+        start)
+    (save-excursion
+      (save-restriction
+        (widen)
+        (if (re-search-forward
+             (concat "^[^%\n]*?\\(\\\\bib\\*\\)[ \t]*{"
+		     (regexp-quote crkey)
+		     "}[ \t]*{\\w+}[ \t]*{")
+	     nil t)
+            (progn
+              (setq start (match-beginning 1))
+              (condition-case nil
+                  (up-list 1)
+                (error nil))
+              (amsreftex-extract-fields
+	       (buffer-substring-no-properties start (point))
+	       "book"))
+          nil)))))
 
 ;;; Parsing the source file
 
