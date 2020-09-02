@@ -12,15 +12,20 @@ Download `amsreftex.el`, put it somewhere in your load-path
 and then do
 ```elisp
 (require 'amsreftex)
+(turn-on-amsreftex)
 ```
 
-Once loaded, `reftex` should detect if you are using `amsrefs`
+After this, `reftex` should detect if you are using `amsrefs`
 databases and Just Work.
 
 This works by checking for the existence of `\bibselect` or
-`\bib` macros.  You may need to re-parse your documet with
+`\bib` macros.  You may need to re-parse your document with
 `M-x reftex-parse-all` after inserting these macros for the
 first time.
+
+If, for any reason, you want to revert to vanilla `reftex`,
+just do `M-x turn-off-amsreftex`.
+
 
 # Warning
 
