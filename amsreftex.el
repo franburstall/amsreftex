@@ -96,7 +96,9 @@
     (,amsreftex-bib-start-re (1 font-lock-keyword-face) (2 font-lock-type-face) (3 font-lock-function-name-face))
     (,amsreftex-kv-start-re (1 font-lock-variable-name-face))))
 
-
+;; whether we are active
+(defvar amsreftex-p nil
+  "Non-nil if amsreftex is active.")
 
 ;;; Files and file search
 
@@ -742,6 +744,7 @@ Intended to advise `%s'" new-fn old-fn)
   "Turn on amsreftex.
 
 This advises several reftex functions to make them work with masrefs databases."
+  (interactive)
   ;; conditionally replace these fns with their amsreftex versions
   (amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
   (amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
@@ -759,22 +762,26 @@ This advises several reftex functions to make them work with masrefs databases."
   ;; 2. reftex-bibtex-selection-callback is called from a buffer that
   ;; is not amsrefs-aware.
   (advice-add 'reftex-parse-from-file :override #'amsreftex-parse-from-file)
-  (advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback))
+  (advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback)
+  (setq amsreftex-p t))
 
 (defun turn-off-amsreftex ()
   "Turn off amsreftex.
 
  We remove all advice added by `turn-on-amsrefs'."
-  (advice-remove 'reftex-locate-bibliography-files #'amsreftex-subvert-reftex-locate-bibliography-files)
-  (advice-remove 'reftex-parse-bibtex-entry #'amsreftex-subvert-reftex-parse-bibtex-entry)
-  (advice-remove 'reftex-extract-bib-entries #'amsreftex-subvert-reftex-extract-bib-entries)
-  (advice-remove 'reftex-extract-bib-entries-from-thebibliography
-		 #'amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography)
-  (advice-remove 'reftex-pop-to-bibtex-entry #'amsreftex-subvert-reftex-pop-to-bibtex-entry)
-  (advice-remove 'reftex-echo-cite #'amsreftex-set-last-arg-to-nil)
-  (advice-remove 'reftex-end-of-bib-entry  #'amsreftex-set-last-arg-to-nil)
-  (advice-remove 'reftex-parse-from-file  #'amsreftex-parse-from-file)
-  (advice-remove 'reftex-bibtex-selection-callback  #'amsreftex-database-selection-callback)
+  (interactive)
+  (if (not amsreftex-p)
+      (user-error "Amsreftex is not turned on!")
+    (advice-remove 'reftex-locate-bibliography-files #'amsreftex-subvert-reftex-locate-bibliography-files)
+    (advice-remove 'reftex-parse-bibtex-entry #'amsreftex-subvert-reftex-parse-bibtex-entry)
+    (advice-remove 'reftex-extract-bib-entries #'amsreftex-subvert-reftex-extract-bib-entries)
+    (advice-remove 'reftex-extract-bib-entries-from-thebibliography
+		   #'amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography)
+    (advice-remove 'reftex-pop-to-bibtex-entry #'amsreftex-subvert-reftex-pop-to-bibtex-entry)
+    (advice-remove 'reftex-echo-cite #'amsreftex-set-last-arg-to-nil)
+    (advice-remove 'reftex-end-of-bib-entry  #'amsreftex-set-last-arg-to-nil)
+    (advice-remove 'reftex-parse-from-file  #'amsreftex-parse-from-file)
+    (advice-remove 'reftex-bibtex-selection-callback  #'amsreftex-database-selection-callback))
   )
 
 (provide 'amsreftex)
