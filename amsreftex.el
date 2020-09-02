@@ -21,7 +21,6 @@
 
 ;;; Commentary:
 
-;; TO DO:
 
 ;; 4. A strategy to check coverage: search reftex codebase for regexps
 ;; that search for bibtex entries.  These are:
@@ -41,14 +40,29 @@
 ;;
 ;; For reftex-bibliography-commands:
 ;; reftex-locate-bibliography-files [DONE]
-;; 7. Think about more translation of fields to bibtex fields: the
+
+;; TO DO:
+
+;; 1.  Write a commentary:
+;;     - Installation
+;;     - Implementation
+;; 2.  Package for GitHub
+;;     - README.md
+;;     - tidy up the repo
+;; 3.  Package for MELPA
+;;     - Package-Requires
+;;     - URL
+;;     - lots of linting
+;; 4.  Think about more translation of fields to bibtex fields: the
 ;; cite-format stuff could access these.
 
+
+
+
 ;; NEXT:
-;; (a) Font-lock: add it to a mode-hook? [DONE]
-;; (b) reftex-create-bibtex-file.  This is really superfluous for
-;; amsrefs: the .bbl file already has the database ready to roll.
-;; (c) Crossref stuff...reftex-get-crossref-alist [DONE] , reftex-view-cr-cite
+;; (a) Look into better formatting of \bib by auctex.  Best option is
+;; no formatting.  Should add an entry to
+;; LaTeX-indent-environment-list.  Learn about how filling works...
 ;; 
 ;; 
 
