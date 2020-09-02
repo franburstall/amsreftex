@@ -709,11 +709,12 @@ If RETURN is non-nil, just return the entry and restore point."
       (error "No amsrefs entry with citation key %s" key))))
 
 
-;;; Subvert relevant reftex functions
+;;* Subvert relevant reftex functions
 
 ;; Silence the byte-compiler: we shall define these functions by macro below.
 (declare-function amsreftex-subvert-reftex-locate-bibliography-files "amsreftex" t)
 (declare-function amsreftex-subvert-reftex-parse-bibtex-entry "amsreftex" t)
+(declare-function amsreftex-subvert-reftex-get-crossref-alist "amsreftex" t)
 (declare-function amsreftex-subvert-reftex-extract-bib-entries "amsreftex"  t)
 (declare-function amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography "amsreftex" t)
 (declare-function amsreftex-subvert-reftex-pop-to-bibtex-entry "amsreftex" t)
@@ -748,6 +749,7 @@ This advises several reftex functions to make them work with masrefs databases."
   ;; conditionally replace these fns with their amsreftex versions
   (amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
   (amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
+  (amsreftex-subvert-fn reftex-get-crossref-alist amsreftex-get-crossref-alist)
   (amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
   (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
   (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
@@ -774,6 +776,7 @@ This advises several reftex functions to make them work with masrefs databases."
       (user-error "Amsreftex is not turned on!")
     (advice-remove 'reftex-locate-bibliography-files #'amsreftex-subvert-reftex-locate-bibliography-files)
     (advice-remove 'reftex-parse-bibtex-entry #'amsreftex-subvert-reftex-parse-bibtex-entry)
+    (advice-remove 'reftex-get-crossref-alist #amsreftex-subvert-reftex-get-crossref-alist)
     (advice-remove 'reftex-extract-bib-entries #'amsreftex-subvert-reftex-extract-bib-entries)
     (advice-remove 'reftex-extract-bib-entries-from-thebibliography
 		   #'amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography)
