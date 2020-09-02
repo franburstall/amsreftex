@@ -776,7 +776,7 @@ This advises several reftex functions to make them work with masrefs databases."
       (user-error "Amsreftex is not turned on!")
     (advice-remove 'reftex-locate-bibliography-files #'amsreftex-subvert-reftex-locate-bibliography-files)
     (advice-remove 'reftex-parse-bibtex-entry #'amsreftex-subvert-reftex-parse-bibtex-entry)
-    (advice-remove 'reftex-get-crossref-alist #amsreftex-subvert-reftex-get-crossref-alist)
+    (advice-remove 'reftex-get-crossref-alist #'amsreftex-subvert-reftex-get-crossref-alist)
     (advice-remove 'reftex-extract-bib-entries #'amsreftex-subvert-reftex-extract-bib-entries)
     (advice-remove 'reftex-extract-bib-entries-from-thebibliography
 		   #'amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography)
