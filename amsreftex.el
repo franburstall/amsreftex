@@ -422,7 +422,7 @@ BUFFERS is a list of buffers or file names."
 ;; a tiny bit of it (see comment therein) to make it amsrefs-friendly.
 
 ;; Replacement for reftex-parse-from-file
-(defun reftex-parse-from-file (file docstruct master-dir)
+(defun amsreftex-parse-from-file (file docstruct master-dir)
   "Scan the buffer of FILE for labels and save them in a list DOCSTRUCT.
 
 Use MASTER-DIR as root for relative paths during file-search.
@@ -709,6 +709,13 @@ If RETURN is non-nil, just return the entry and restore point."
 
 ;;; Subvert relevant reftex functions
 
+;; Silence the byte-compiler: we shall define these functions by macro below.
+(declare-function amsreftex-subvert-reftex-locate-bibliography-files "amsreftex" t)
+(declare-function amsreftex-subvert-reftex-parse-bibtex-entry "amsreftex" t)
+(declare-function amsreftex-subvert-reftex-extract-bib-entries "amsreftex"  t)
+(declare-function amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography "amsreftex" t)
+(declare-function amsreftex-subvert-reftex-pop-to-bibtex-entry "amsreftex" t)
+
 (defmacro amsreftex-subvert-fn (old-fn new-fn)
   "Advise OLD-FN so that it is replaced by NEW-FN if `amsreftex-mode' is active."
   (let ((subvert-fn (intern (format "amsreftex-subvert-%s" old-fn))))
@@ -725,26 +732,52 @@ Intended to advise `%s'" new-fn old-fn)
        
        (advice-add ',old-fn :around #',subvert-fn))))
 
-(amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
-(amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
-(amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
-(amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
-(amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
-
-;; Both reftex-echo-cite and reftex-end-of-bib-entry have a last
-;; argument ITEM for dealing with the case of on-board \bibitems.  We
-;; set this argument to nil.
 (defun amsreftex-set-last-arg-to-nil (args)
   "If amsrefs databases are in use, set last element of ARGS to nil."
   (when (assq 'database (symbol-value reftex-docstruct-symbol))
     (setf (car (last args)) nil))
   args)
+;;;###autoload
+(defun turn-on-amsreftex ()
+  "Turn on amsreftex.
 
-(advice-add 'reftex-echo-cite :filter-args #'amsreftex-set-last-arg-to-nil)
-(advice-add 'reftex-end-of-bib-entry :filter-args #'amsreftex-set-last-arg-to-nil)
+This advises several reftex functions to make them work with masrefs databases."
+  ;; conditionally replace these fns with their amsreftex versions
+  (amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
+  (amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
+  (amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
+  (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
+  (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
+  ;; Both reftex-echo-cite and reftex-end-of-bib-entry have a last
+  ;; argument ITEM for dealing with the case of on-board \bibitems.  We
+  ;; set this argument to nil.
+  (advice-add 'reftex-echo-cite :filter-args #'amsreftex-set-last-arg-to-nil)
+  (advice-add 'reftex-end-of-bib-entry :filter-args #'amsreftex-set-last-arg-to-nil)
+  ;; unconditionally replace two functions:
+  ;; 1. Replace reftex-parse-from-file just to get off the ground.
+  ;; This is what makes document buffers amsrefs-aware.
+  ;; 2. reftex-bibtex-selection-callback is called from a buffer that
+  ;; is not amsrefs-aware.
+  (advice-add 'reftex-parse-from-file :override #'amsreftex-parse-from-file)
+  (advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback))
 
-(advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback)
+(defun turn-off-amsreftex ()
+  "Turn off amsreftex.
 
+ We remove all advice added by `turn-on-amsrefs'."
+  (advice-remove 'reftex-locate-bibliography-files #'amsreftex-subvert-reftex-locate-bibliography-files)
+  (advice-remove 'reftex-parse-bibtex-entry #'amsreftex-subvert-reftex-parse-bibtex-entry)
+  (advice-remove 'reftex-extract-bib-entries #'amsreftex-subvert-reftex-extract-bib-entries)
+  (advice-remove 'reftex-extract-bib-entries-from-thebibliography
+		 #'amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography)
+  (advice-remove 'reftex-pop-to-bibtex-entry #'amsreftex-subvert-reftex-pop-to-bibtex-entry)
+  (advice-remove 'reftex-echo-cite #'amsreftex-set-last-arg-to-nil)
+  (advice-remove 'reftex-end-of-bib-entry  #'amsreftex-set-last-arg-to-nil)
+  (advice-remove 'reftex-parse-from-file  #'amsreftex-parse-from-file)
+  (advice-remove 'reftex-bibtex-selection-callback  #'amsreftex-database-selection-callback)
+  )
 
 (provide 'amsreftex)
+
+
 ;;; amsreftex.el ends here
