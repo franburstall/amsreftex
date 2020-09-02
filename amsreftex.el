@@ -44,7 +44,7 @@
 ;; bibliography databases it uses.  It parses them into an internal
 ;; format with which it works from then on.  To adapt reftex to work
 ;; with amsrefs databases, we need only adjust the workings of 10
-;; functions which use bibtex-specific assumptions (often in the shape
+;; functions which make bibtex-specific assumptions (often in the shape
 ;; of regexps) to accomplish their ends.  These are:
 ;; `reftex-locate-bibliography-files'
 ;; `reftex-parse-bibtex-entry'
@@ -274,6 +274,28 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
   "Return value of field FIELD in ENTRY or nil if FIELD is not present."
   (cdr (assoc field entry)))
 
+;; Replacement for reftex-get-crossref-alist
+(defun amsreftex-get-crossref-alist (entry)
+  "Return the alist from a crossref ENTRY."
+  (let ((crkey (cdr (assoc "xref" entry)))
+        start)
+    (save-excursion
+      (save-restriction
+        (widen)
+        (if (re-search-forward
+             (concat "^[^%\n]*?\\(\\\\bib\\*\\)[ \t]*{"
+		     (regexp-quote crkey)
+		     "}[ \t]*{\\w+}[ \t]*{")
+	     nil t)
+            (progn
+              (setq start (match-beginning 1))
+              (condition-case nil
+                  (up-list 1)
+                (error nil))
+              (amsreftex-extract-fields
+	       (buffer-substring-no-properties start (point))
+	       "book"))
+          nil)))))
 
 (defun amsreftex--extract-entries (re-list buffer)
   "Extract amsrefs entries that match all regexps in RE-LIST from BUFFER."
@@ -326,9 +348,9 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	     (push alist results))))))
     (nreverse results)
     ))
-
 ;; Replacement for both reftex-extract-bib-entries and
 ;; reftex-extract-bib-entries-from-thebibliography
+
 (defun amsreftex-extract-entries (buffers)
   "Prompt for regexp and return list of matching entries from BUFFERS.
 BUFFERS is a list of buffers or file names."
@@ -388,29 +410,6 @@ BUFFERS is a list of buffers or file names."
       (sort found-list 'reftex-bib-sort-year-reverse))
      (t found-list))
     ))
-
-;; Replacement for reftex-get-crossref-alist
-(defun amsreftex-get-crossref-alist (entry)
-  "Return the alist from a crossref ENTRY."
-  (let ((crkey (cdr (assoc "xref" entry)))
-        start)
-    (save-excursion
-      (save-restriction
-        (widen)
-        (if (re-search-forward
-             (concat "^[^%\n]*?\\(\\\\bib\\*\\)[ \t]*{"
-		     (regexp-quote crkey)
-		     "}[ \t]*{\\w+}[ \t]*{")
-	     nil t)
-            (progn
-              (setq start (match-beginning 1))
-              (condition-case nil
-                  (up-list 1)
-                (error nil))
-              (amsreftex-extract-fields
-	       (buffer-substring-no-properties start (point))
-	       "book"))
-          nil)))))
 
 ;;* Parsing the source file
 
@@ -614,9 +613,9 @@ Additionally add amsref databases."
 ;; Replace the callback...the issue here is that this callback may be
 ;; called in a context (the Ref-Select buffer) where we have no access
 ;; to the reftex-docstruct-symbol of the document buffer.  This means
-;; our usual advice method applied to reftex-pop-to-bibtex-entry may
-;; not apply so we must test for amsrefs in a different way (by
-;; inpsecting the format of the entry) and manually choose the
+;; our usual advice method applied to reftex-pop-to-bibtex-entry might
+;; not work  so we must test for amsrefs in a different way
+;; (by inpsecting the format of the entry) and manually choose the
 ;; function for popping to the entry.
 
 (defun amsreftex-database-selection-callback (data _ignore no-revisit)
@@ -724,11 +723,11 @@ If RETURN is non-nil, just return the entry and restore point."
 (declare-function amsreftex-subvert-reftex-pop-to-bibtex-entry "amsreftex" t)
 
 (defmacro amsreftex-subvert-fn (old-fn new-fn)
-  "Advise OLD-FN so that it is replaced by NEW-FN if `amsreftex-mode' is active."
+  "If amsrefs databases are in use, advise OLD-FN so that it is replaced by NEW-FN."
   (let ((subvert-fn (intern (format "amsreftex-subvert-%s" old-fn))))
     `(progn
        (defun ,subvert-fn (old-fn &rest args)
-	 ,(format "If amsrefs databases are in use,, replace OLD-FN with `%s'.
+	 ,(format "If amsrefs databases are in use, replace OLD-FN with `%s'.
 
 Intended to advise `%s'" new-fn old-fn)
 	 (unless (symbol-value reftex-docstruct-symbol)
@@ -808,6 +807,8 @@ This advises several reftex functions to make them work with masrefs databases."
 ;;**  Translate more fields
 ;; Think about more translation of fields to bibtex fields: the
 ;; cite-format stuff could access these.
+;;**  Document reftex-ltbpath-environment-variables in the README and
+;; commentary.
 
 
 
