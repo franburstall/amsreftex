@@ -3,6 +3,7 @@
 ;; Copyright (C) 2020  Fran Burstall
 
 ;; Author: Fran Burstall <fran.burstall@gmail.com>
+;; Version: 0.1
 ;; Keywords: tex
 
 ;; This program is free software; you can redistribute it and/or modify
