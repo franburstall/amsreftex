@@ -1,4 +1,4 @@
-;;; amsreftex.el --- Library to enable reftex to use amsrefs bibliographies  -*- lexical-binding: t; -*-
+;;; amsreftex.el --- amsrefs bibliography support for reftex  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020  Fran Burstall
 
@@ -21,54 +21,57 @@
 
 ;;; Commentary:
 
+;; Usage:
+;; Download `amsreftex.el`, put it somewhere in your load-path
+;; and then do
+;; 
+;; (require 'amsreftex)
+;; (turn-on-amsreftex)
+;; 
+;; After this, `reftex` should detect if you are using `amsrefs`
+;; databases and Just Work.
+;; 
+;; This works by checking for the existence of `\bibselect` or
+;; `\bib` macros.  You may need to re-parse your document with
+;; `M-x reftex-parse-all` after inserting these macros for the
+;; first time.
+;; 
+;; If, for any reason, you want to revert to vanilla `reftex`,
+;; just do `M-x turn-off-amsreftex`.
 
-;; 4. A strategy to check coverage: search reftex codebase for regexps
-;; that search for bibtex entries.  These are:
-;; For "@\\":
-;; reftex-pop-to-bibtex-entry [DONE]
-;; reftex-extract-bib-entries [DONE]
-;; reftex-get-crossref-alist [DONE: no need to subvert]
-;; reftex-parse-bibtex-entry [DONE]
-;; reftex-create-bibtex-file [IGNORED]
+;; Implementation:
+;; Vanilla reftex is mostly agnostic about the format of the
+;; bibliography databases it uses.  It parses them into an internal
+;; format with which it works from then on.  To adapt reftex to work
+;; with amsrefs databases, we need only adjust the workings of 10
+;; functions which use bibtex-specific assumptions (often in the shape
+;; of regexps) to accomplish their ends.  These are:
+;; `reftex-locate-bibliography-files'
+;; `reftex-parse-bibtex-entry'
+;; `reftex-get-crossref-alist'
+;; `reftex-extract-bib-entries'
+;; `reftex-extract-bib-entries-from-thebibliography'
+;; `reftex-pop-to-bibtex-entry'
+;; `reftex-echo-cite'
+;; `reftex-end-of-bibentry'
+;; `reftex-parse-from-file'
+;; `reftex-bibtex-selection-callback'
+;; We adjust these functions by advising them to call alternatives if
+;; we are in an document using amsrefs.
+;; 
+;; We notify the presence of amsrefs databases by adding a cell to the
+;; document's `reftex-docstruct-symbol' alist (with car 'database and
+;; currently ignored cdr).  This is done by unconditionally replacing
+;; `reftex-parse-from-file' by `amsreftex-parse-from-file' when
+;; amsreftex is turned on.  Thereafter, most of the functions above
+;; are advised to check for this cell and call an amsrefs-friendly
+;; replacement if it is present.
 ;;
-;; For "\\bib":
-;; reftex-view-crossref.  Q: what does this do on a bibitem? A: show a \cite.
-;; reftex-pop-to-bibtex-entry [DONE]
-;; reftex-end-of-bib-entry (called by reftex-view-cr-cite (to get a
-;; tmp window height) and reftex-pop-to-bibtex-entry)
-;; reftex-extract-bib-entries-from-thebibliography [DONE]
-;;
-;; For reftex-bibliography-commands:
-;; reftex-locate-bibliography-files [DONE]
-
-;; TO DO:
-
-;; 1.  Write a commentary:
-;;     - Installation
-;;     - Implementation
-;; 2.  Package for GitHub
-;;     - README.md
-;;     - tidy up the repo
-;; 3.  Package for MELPA
-;;     - Package-Requires
-;;     - URL
-;;     - lots of linting
-;; 4.  Think about more translation of fields to bibtex fields: the
-;; cite-format stuff could access these.
-
-
-
-
-;; NEXT:
-;; (a) Look into better formatting of \bib by auctex.  Best option is
-;; no formatting.  Should add an entry to
-;; LaTeX-indent-environment-list.  Learn about how filling works...
-;; 
-;; 
-
-
-;; 
-
+;; The only exceptions to this rule are `reftex-parse-from-file',
+;; discussed above, and `reftex-bibtex-selection-callback'.  The latter
+;; is called from a selection buffer where the docstruct alist is not
+;; available and so we unconditionally replace it with a version that
+;; makes its own test for amsrefs.
 
 
 ;;; Code:
@@ -79,7 +82,7 @@
 (require 'reftex-parse)
 (require 'reftex-dcr)
 
-;;; Vars
+;;* Vars
 
 (defvar amsreftex-bib-start-re "\\(\\\\bib[*]?\\){\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{"
   "Regexp matching start of amsrefs entry.")
@@ -100,7 +103,7 @@
 (defvar amsreftex-p nil
   "Non-nil if amsreftex is active.")
 
-;;; Files and file search
+;;* Files and file search
 
 ;; amsrefs uses .ltb files for its databases.  These are essentially
 ;; LaTeX files so treat them as such:
@@ -164,7 +167,7 @@ If FILES is present, list these instead."
            files))
     (delq nil files)))
 
-;;; Parsing databases and extracting entries from them
+;;* Parsing databases and extracting entries from them
 
 ;; We factor out the extraction of fields from \bib entries.
 (defun amsreftex-extract-fields (blob &optional prefix)
@@ -386,6 +389,7 @@ BUFFERS is a list of buffers or file names."
      (t found-list))
     ))
 
+;; Replacement for reftex-get-crossref-alist
 (defun amsreftex-get-crossref-alist (entry)
   "Return the alist from a crossref ENTRY."
   (let ((crkey (cdr (assoc "xref" entry)))
@@ -408,7 +412,7 @@ BUFFERS is a list of buffers or file names."
 	       "book"))
           nil)))))
 
-;;; Parsing the source file
+;;* Parsing the source file
 
 (defun amsreftex-using-amsrefs-p ()
   "Return non-nil if we seem to be using amsrefs databases."
@@ -605,7 +609,7 @@ Additionally add amsref databases."
  
 
 
-;;; Pop to entry and echo citations
+;;* Pop to entry and echo citations
 
 ;; Replace the callback...the issue here is that this callback may be
 ;; called in a context (the Ref-Select buffer) where we have no access
@@ -740,6 +744,9 @@ Intended to advise `%s'" new-fn old-fn)
   (when (assq 'database (symbol-value reftex-docstruct-symbol))
     (setf (car (last args)) nil))
   args)
+
+;;* Entry point
+
 ;;;###autoload
 (defun turn-on-amsreftex ()
   "Turn on amsreftex.
@@ -788,6 +795,27 @@ This advises several reftex functions to make them work with masrefs databases."
   )
 
 (provide 'amsreftex)
+
+;;* TO DO:
+
+;;**  Package for GitHub
+;;     - README.md
+;;     - tidy up the repo
+;;**  Package for MELPA
+;;     - Package-Requires
+;;     - URL
+;;     - lots of linting
+;;**  Translate more fields
+;; Think about more translation of fields to bibtex fields: the
+;; cite-format stuff could access these.
+
+
+
+
+;;* NEXT:
+;; (a) Look into better formatting of \bib by auctex.  Best option is
+;; no formatting.  Should add an entry to
+;; LaTeX-indent-environment-list.  Learn about how filling works...
 
 
 ;;; amsreftex.el ends here
