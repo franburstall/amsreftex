@@ -68,10 +68,11 @@
 ;; replacement if it is present.
 ;;
 ;; The only exceptions to this rule are `reftex-parse-from-file',
-;; discussed above, and `reftex-bibtex-selection-callback'.  The latter
-;; is called from a selection buffer where the docstruct alist is not
-;; available and so we unconditionally replace it with a version that
-;; makes its own test for amsrefs.
+;; discussed above, `reftex-bibtex-selection-callback' and
+;; `reftex-end-of-bib-entry'.  The latter are called from a selection
+;; buffer where the docstruct alist is not available and so we
+;; unconditionally replace them with versions that make its own test
+;; for amsrefs.
 
 
 ;;; Code:
@@ -677,7 +678,7 @@ If HIGHLIGHT is non-nil, highlight the match.
 If RETURN is non-nil, just return the entry and restore point."
   (let* ((re (concat "\\\\bib[*]?{" (regexp-quote key) "}[ \t]*{\\(\\w+\\)}{"))
          (buffer-conf (current-buffer))
-         file buf pos oldpos end)
+         file buf pos oldpos)
 
     (catch 'exit
       (while file-list
@@ -695,10 +696,8 @@ If RETURN is non-nil, just return the entry and restore point."
           (setq pos (point))
           (when return
             ;; Just return the relevant entry
-	    (goto-char (1- (match-end 0)))
-	    (setq end (reftex-end-of-bib-entry nil)) ; does forward-list
 	    (setq return (buffer-substring
-                          pos end))
+                          pos (reftex-end-of-bib-entry nil)))
 	    (goto-char oldpos) ;; restore point.
             (set-buffer buffer-conf)
             (throw 'exit return))
@@ -711,6 +710,25 @@ If RETURN is non-nil, just return the entry and restore point."
       (set-buffer buffer-conf)
       (error "No amsrefs entry with citation key %s" key))))
 
+;; Replacement for reftex-end-of-bib-entry
+(defun amsreftex-end-of-bib-entry (item)
+  "Find the end of a database entry, a \\bibitem if ITEM non-nil.
+
+Assumes that point is at the start of the entry."
+  (save-excursion
+    (condition-case nil
+        (cond
+	 ((looking-at-p "\\\\bib[*]?{")
+	  (forward-list 3)
+	  (point))
+	 (item
+	  (end-of-line)
+	  (re-search-forward
+	   "\\\\bibitem\\|\\\\end{thebibliography}")
+	  (1- (match-beginning 0)))
+	 (t
+	  (forward-list 1) (point)))
+      (error (min (point-max) (+ 300 (point)))))))
 
 ;;* Subvert relevant reftex functions
 
@@ -757,18 +775,17 @@ This advises several reftex functions to make them work with masrefs databases."
   (amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
   (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
   (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
-  ;; Both reftex-echo-cite and reftex-end-of-bib-entry have a last
-  ;; argument ITEM for dealing with the case of on-board \bibitems.  We
-  ;; set this argument to nil.
+  ;; reftex-echo-cite has an argument ITEM for dealing with the case of
+  ;; on-board \bibitems.  We set this argument to nil.
   (advice-add 'reftex-echo-cite :filter-args #'amsreftex-set-last-arg-to-nil)
-  (advice-add 'reftex-end-of-bib-entry :filter-args #'amsreftex-set-last-arg-to-nil)
-  ;; unconditionally replace two functions:
+  ;; unconditionally replace three functions:
   ;; 1. Replace reftex-parse-from-file just to get off the ground.
   ;; This is what makes document buffers amsrefs-aware.
-  ;; 2. reftex-bibtex-selection-callback is called from a buffer that
-  ;; is not amsrefs-aware.
+  ;; 2. reftex-bibtex-selection-callback and reftex-end-of-bib-entry
+  ;; can be called from a buffer that is not amsrefs-aware.
   (advice-add 'reftex-parse-from-file :override #'amsreftex-parse-from-file)
   (advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback)
+  (advice-add 'reftex-end-of-bib-entry :override #'amsreftex-end-of-bib-entry)
   (setq amsreftex-p t))
 
 (defun turn-off-amsreftex ()
@@ -788,7 +805,8 @@ This advises several reftex functions to make them work with masrefs databases."
     (advice-remove 'reftex-echo-cite #'amsreftex-set-last-arg-to-nil)
     (advice-remove 'reftex-end-of-bib-entry  #'amsreftex-set-last-arg-to-nil)
     (advice-remove 'reftex-parse-from-file  #'amsreftex-parse-from-file)
-    (advice-remove 'reftex-bibtex-selection-callback  #'amsreftex-database-selection-callback))
+    (advice-remove 'reftex-bibtex-selection-callback  #'amsreftex-database-selection-callback)
+    (setq amsreftex-p nil))
   )
 
 (provide 'amsreftex)
@@ -807,7 +825,7 @@ This advises several reftex functions to make them work with masrefs databases."
 ;; cite-format stuff could access these.
 ;;**  Document reftex-ltbpath-environment-variables in the README and
 ;; commentary.
-
+;;;** In-place sorting of biblists: this would be a winner.
 
 
 
@@ -815,6 +833,10 @@ This advises several reftex functions to make them work with masrefs databases."
 ;; (a) Look into better formatting of \bib by auctex.  Best option is
 ;; no formatting.  Should add an entry to
 ;; LaTeX-indent-environment-list.  Learn about how filling works...
+;;;** is reftex-view-crossref really working?  Should have the right
+;; window size: check this.  Window height is way off:
+;; release-blocker!
+;; set reftex-auto-view-crossref to window to check this.
 
 
 ;;; amsreftex.el ends here
