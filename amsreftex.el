@@ -730,8 +730,6 @@ If RETURN is non-nil, just return the entry and restore point."
 	 ,(format "If amsrefs databases are in use, replace OLD-FN with `%s'.
 
 Intended to advise `%s'" new-fn old-fn)
-	 (unless (symbol-value reftex-docstruct-symbol)
-	   (error "Advised fn %S called in bad context" old-fn ))
 	 (if (assq 'database (symbol-value reftex-docstruct-symbol))
 	     (apply #',new-fn args)
 	   (apply old-fn args)))
