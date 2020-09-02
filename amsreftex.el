@@ -833,10 +833,6 @@ This advises several reftex functions to make them work with masrefs databases."
 ;; (a) Look into better formatting of \bib by auctex.  Best option is
 ;; no formatting.  Should add an entry to
 ;; LaTeX-indent-environment-list.  Learn about how filling works...
-;;;** is reftex-view-crossref really working?  Should have the right
-;; window size: check this.  Window height is way off:
-;; release-blocker!
-;; set reftex-auto-view-crossref to window to check this.
 
 
 ;;; amsreftex.el ends here
