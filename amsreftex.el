@@ -110,8 +110,6 @@
 ;; LaTeX files so treat them as such:
 (cl-pushnew '("\\.ltb\\'" . latex-mode) auto-mode-alist :test 'equal)
 
-;; and add some fontification for \bib macros
-(font-lock-add-keywords 'latex-mode amsreftex-font-lock-keywords)
 
 ;; Searching for files: we setup the ltb file type for
 ;; reftex-locate-file.  For this, it suffices to setup the following
@@ -766,7 +764,9 @@ Intended to advise `%s'" new-fn old-fn)
 (defun turn-on-amsreftex ()
   "Turn on amsreftex.
 
-This advises several reftex functions to make them work with masrefs databases."
+This advises several reftex functions to make them work with
+amsrefs databases and installs some font-locking for \\bib
+macros."
   (interactive)
   ;; conditionally replace these fns with their amsreftex versions
   (amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
@@ -776,7 +776,7 @@ This advises several reftex functions to make them work with masrefs databases."
   (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
   (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
   ;; reftex-echo-cite has an argument ITEM for dealing with the case of
-  ;; on-board \bibitems.  We set this argument to nil.
+  ;; on-board \bibitems.  We conditionally set this argument to nil.
   (advice-add 'reftex-echo-cite :filter-args #'amsreftex-set-last-arg-to-nil)
   ;; unconditionally replace three functions:
   ;; 1. Replace reftex-parse-from-file just to get off the ground.
@@ -786,12 +786,15 @@ This advises several reftex functions to make them work with masrefs databases."
   (advice-add 'reftex-parse-from-file :override #'amsreftex-parse-from-file)
   (advice-add 'reftex-bibtex-selection-callback :override #'amsreftex-database-selection-callback)
   (advice-add 'reftex-end-of-bib-entry :override #'amsreftex-end-of-bib-entry)
+  ;; Add some fontification for \bib macros
+  (font-lock-add-keywords 'latex-mode amsreftex-font-lock-keywords)
+  
   (setq amsreftex-p t))
 
 (defun turn-off-amsreftex ()
-  "Turn off amsreftex.
+  "Turn off amsreftex, leaving almost no trace behind.
 
- We remove all advice added by `turn-on-amsrefs'."
+ We remove all advice added by `turn-on-amsrefs' and any font-locking installed."
   (interactive)
   (if (not amsreftex-p)
       (user-error "Amsreftex is not turned on!")
@@ -806,6 +809,7 @@ This advises several reftex functions to make them work with masrefs databases."
     (advice-remove 'reftex-end-of-bib-entry  #'amsreftex-set-last-arg-to-nil)
     (advice-remove 'reftex-parse-from-file  #'amsreftex-parse-from-file)
     (advice-remove 'reftex-bibtex-selection-callback  #'amsreftex-database-selection-callback)
+    (font-lock-remove-keywords 'latex-mode amsreftex-font-lock-keywords)
     (setq amsreftex-p nil))
   )
 
