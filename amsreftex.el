@@ -825,8 +825,7 @@ This advises several reftex functions to make them work with masrefs databases."
 ;; cite-format stuff could access these.
 ;;**  Document reftex-ltbpath-environment-variables in the README and
 ;; commentary.
-;;;** In-place sorting of biblists: this would be a winner.
-
+;;** In-place sorting of biblists: this would be a winner.
 
 
 ;;* NEXT:
