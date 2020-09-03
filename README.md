@@ -1,10 +1,8 @@
 # amsreftex
 
-A library that extends
-[`reftex`](https://www.gnu.org/software/auctex/reftex.html)
-to allow the use of 
 [`amsrefs`](http://www.ams.org/publications/authors/tex/amsrefs)
-databases.
+bibliography support for
+[`reftex`](https://www.gnu.org/software/auctex/reftex.html).
 
 # Installation and usage
 
@@ -25,6 +23,13 @@ first time.
 
 If, for any reason, you want to revert to vanilla `reftex`,
 just do `M-x turn-off-amsreftex`.
+
+# Configuration
+
+There is almost nothing to configure.  The one exception: by
+default, `amsreftex` inspects `$TEXINPUTS` to find the
+search-path for `amsrefs` databases (`.ltb` files).
+Customize `reftex-ltbpath-environment-variables` to change this.
 
 
 # Warning

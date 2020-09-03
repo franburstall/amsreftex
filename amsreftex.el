@@ -38,6 +38,12 @@
 ;; 
 ;; If, for any reason, you want to revert to vanilla `reftex`,
 ;; just do `M-x turn-off-amsreftex`.
+;;
+;; Configuration:
+;; There is almost nothing to configure.  The one exception: by
+;; default, `amsreftex` inspects $TEXINPUTS to find the
+;; search-path for `amsrefs` databases (.ltb files).
+;; Customize `reftex-ltbpath-environment-variables' to change this.
 
 ;; Implementation:
 ;; Vanilla reftex is mostly agnostic about the format of the
