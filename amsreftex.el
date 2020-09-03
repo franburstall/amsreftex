@@ -815,7 +815,9 @@ macros."
     (advice-remove 'reftex-end-of-bib-entry  #'amsreftex-set-last-arg-to-nil)
     (advice-remove 'reftex-parse-from-file  #'amsreftex-parse-from-file)
     (advice-remove 'reftex-bibtex-selection-callback  #'amsreftex-database-selection-callback)
+    
     (font-lock-remove-keywords 'latex-mode amsreftex-font-lock-keywords)
+    
     (setq amsreftex-p nil))
   )
 
@@ -833,8 +835,6 @@ macros."
 ;;**  Translate more fields
 ;; Think about more translation of fields to bibtex fields: the
 ;; cite-format stuff could access these.
-;;**  Document reftex-ltbpath-environment-variables in the README and
-;; commentary.
 ;;** In-place sorting of biblists: this would be a winner.
 
 
