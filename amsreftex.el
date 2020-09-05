@@ -4,6 +4,7 @@
 
 ;; Author: Fran Burstall <fran.burstall@gmail.com>
 ;; Version: 0.1
+;; Package-Requires: ((emacs "24.4"))
 ;; Keywords: tex
 ;; URL: https://github.com/franburstall/amsreftex
 
@@ -216,9 +217,14 @@ Fields with keys 'author' or 'editor' are collected into a single BibTeX-style f
 	  )
 	 ((equal key "date")
 	  ;; amsrefs has a date field so extract the year
-	  (push (cons (concat prefix (when prefix "-") "year")
-		      (car (split-string field "-" t)))
-		alist))
+	  (let* ((date-fields (split-string field "-" t))
+		 (year (nth 0 date-fields))
+		 (month (nth 1 date-fields)))
+	    (push (cons (concat prefix (when prefix "-") "year") year)
+		  alist)
+	    (when month
+	      (push (cons (concat prefix (when prefix "-") "month") month)
+		    alist))))
 	 ((equal key "pages")
 	  ;; strip amsrefs markup
 	  (push (cons (concat prefix (when prefix "-") "pages")
@@ -265,7 +271,11 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 		     (string-match "m[.]*s[.]*c\\|master\\|diplom" thesis-type))
 		(setf (cdr (assoc "&type" alist)) "mastersthesis")
 	      ;; default to phdthesis
-	      (setf (cdr (assoc "&type" alist)) "phdthesis")))
+	      (setf (cdr (assoc "&type" alist)) "phdthesis"))
+	    ;; bibtex's `school` is amsrefs `organization` in this
+	    ;; case
+	    (let ((school (amsreftex-get-bib-field "organization" alist)))
+	      (if school (push (cons "school" school) alist))))
 
 	  ;; turn articles into incollection if booktitle present
 	  (if (assoc "booktitle" alist)
@@ -830,9 +840,6 @@ macros."
 ;;     - Package-Requires
 ;;     - URL
 ;;     - lots of linting
-;;**  Translate more fields
-;; Think about more translation of fields to bibtex fields: the
-;; cite-format stuff could access these.
 ;;** In-place sorting of biblists: this would be a winner.
 
 
