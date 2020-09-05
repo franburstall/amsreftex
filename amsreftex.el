@@ -5,6 +5,7 @@
 ;; Author: Fran Burstall <fran.burstall@gmail.com>
 ;; Version: 0.1
 ;; Keywords: tex
+;; URL: https://github.com/franburstall/amsreftex
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -825,9 +826,6 @@ macros."
 
 ;;* TO DO:
 
-;;**  Package for GitHub
-;;     - README.md
-;;     - tidy up the repo
 ;;**  Package for MELPA
 ;;     - Package-Requires
 ;;     - URL
