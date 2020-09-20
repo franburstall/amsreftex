@@ -873,11 +873,10 @@ Try author first and then editor."
     (unless names (setq names (amsreftex-get-bib-field "editor" entry)))
     (if (not names)
 	(list "")
-      ;; thread-last would be nice here but needs emacs 25.1,
-      (mapcar #'amsreftex-get-name-parts
-	      (mapcar #'downcase
-		      (mapcar #'amsreftex-strip-LaTeX
-			      (split-string names "\\band\\b" nil "[ \t]+")))))))
+      (thread-last (split-string names "\\band\\b" nil "[ \t]+")
+	(mapcar #'amsreftex-strip-LaTeX)
+	(mapcar #'downcase)
+	(mapcar #'amsreftex-get-name-parts)))))
 
 ;;** Predicates
 
