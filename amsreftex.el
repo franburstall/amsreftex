@@ -3,7 +3,7 @@
 ;; Copyright (C) 2020  Fran Burstall
 
 ;; Author: Fran Burstall <fran.burstall@gmail.com>
-;; Version: 0.1
+;; Version: 0.2
 ;; Package-Requires: ((emacs "24.4"))
 ;; Keywords: tex
 ;; URL: https://github.com/franburstall/amsreftex
@@ -90,14 +90,21 @@
 (require 'reftex-cite)
 (require 'reftex-parse)
 (require 'reftex-dcr)
+(require 'sort)
 
 ;;* Vars
 
-(defvar amsreftex-bib-start-re "\\(\\\\bib[*]?\\){\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{"
+(defvar amsreftex-bib-start-re "^[ \t]*\\(\\\\bib[*]?\\){\\(\\(?:\\w\\|\\s_\\)+\\)}{\\(\\w+\\)}{"
   "Regexp matching start of amsrefs entry.")
 
-(defvar amsreftex-kv-start-re "\\(\\(?:\\w\\|-\\)+\\)[ \t\n\r]*=[ \t\n\r]*{"
+(defvar amsreftex-kv-start-re "^[ \t]*\\(\\(?:\\w\\|-\\)+\\)[ \t\n\r]*=[ \t\n\r]*{"
   "Regexp matching start of key-val pair in amsrefs entry.")
+
+(defvar amsreftex-biblist-start-re "^[^%\n\r]*\\\\begin{biblist}"
+  "Regexp matching start of biblist environment.")
+
+(defvar amsreftex-biblist-end-re "^[^%\n\r]*\\\\end{biblist}"
+  "Regexp matching end of biblist environment.")
 
 ;; silence flycheck: this is defined in reftex-parse.
 (defvar reftex--index-tags)
@@ -775,6 +782,197 @@ Intended to advise `%s'" new-fn old-fn)
     (setf (car (last args)) nil))
   args)
 
+;;* Sorting
+;; This is shockingly easy in some ways, thanks to the 'sort' library.
+;; The only thing that requires any thought is the sort predicate.
+;; But that is where things get complicated: should we sort in utf-8
+;; by locale collate order?  To do so, we must go down the rabbit hole
+;; of converting TeX accents and special characters to utf-8.  On the
+;; other hand, what do journals do?  A small sampling from MathSciNet
+;; suggests that, for example, Ørsted gets sorted as if Orsted by
+;; Trans. AMS and so we will do similarly.  We brutally strip out
+;; accents and special characters as though it is still the 1970's and
+;; ASCII is king.  We may return to this later and try to do better.
+
+;;** Handling names
+
+(defvar amsreftex-sort-fields '("author" "year")
+  "List of \\bib fields to compare when sorting bibliographies.
+
+The default is to sort by authors then year.")
+
+(defvar amsreftex-sort-name-parts '(last initial)
+  "Ordered list of parts of a name to compare when sorting.
+
+Valid elements are 'first, 'last and 'initial.
+
+Example: when set to '(first last) then \"Burstall, Francis\" will
+sort before \"Atiyah, Michael\" while, with '(last first), the
+converse is true.")
+
+(defun amsreftex-strip-LaTeX (str)
+  "Strip LaTeX accents from string STR."
+  ;; accents
+  (let ((re "\\\\[\"'.=^`~bcdHkrtuv] ?"))
+    (while (string-match re str)
+      (setq str (replace-match "" nil t str)))
+    ;; any remaining backslashes
+    (while (string-match "\\\\" str)
+      (setq str (replace-match "" nil t str)))
+    ;; leftover {}
+    (while (string-match "[{}]" str)
+      (setq str (replace-match "" nil t str)))
+    str))
+
+(defun amsreftex-get-name-parts (name)
+  "Parse NAME into a list of parts according to `amsreftex-sort-name-parts'."
+  (let* ((template (or amsreftex-sort-name-parts '(last first)))
+	 (part-list (split-string name "," t "[ \t]+"))
+	 (last (or (nth 0 part-list) ""))
+	 (first (or (nth 1 part-list) ""))
+	 (initial (if (> (length first) 0) (substring first 0 1) "")))
+    (mapcar
+     (lambda (part) (cond ((eq part 'last) last)
+			  ((eq part 'first) first)
+			  ((eq part 'initial) initial)))
+     template)))
+
+(defun amsreftex-get-bib-name-list (entry)
+  "Get list of names from ENTRY.
+
+Try author first and then editor."
+  (let ((names (amsreftex-get-bib-field "author" entry)))
+    (unless names (setq names (amsreftex-get-bib-field "editor" entry)))
+    (if (not names)
+	(list "")
+      ;; thread-last would be nice here but needs emacs 25.1,
+      (mapcar #'amsreftex-get-name-parts
+	      (mapcar #'downcase
+		      (mapcar #'amsreftex-strip-LaTeX
+			      (split-string names "\\band\\b" nil "[ \t]+")))))))
+
+;;** Predicates
+
+(defun amsreftex-compare-by-field (e1 e2 field)
+  "Return non-nil if FIELD of E1 is less than that of E2.
+
+Compares with `amsreftex-compare-FIELD' if this is fbound and `string<' otherwise."
+  (let ((pred (intern (concat "amsreftex-compare-" field))))
+    (if (fboundp pred)
+	(funcall pred e1 e2)
+      (string< (reftex-get-bib-field field e1)
+	       (reftex-get-bib-field field e2)))))
+
+(defun amsreftex-compare-lists (l1 l2 pred)
+  "Return non-nil if L1 should sort before L2 according to PRED.
+
+In more detail, return the value of PRED applied to the first
+  pair of values in L1 and L2 that are not `equal'.  If there is
+  no such pair, return non-nil if L1 is strictly shorter than
+  L2."
+  (while (and l1 l2 (equal (car l1) (car l2)))
+    (pop l1)
+    (pop l2))
+  (cond ((and l1 l2)
+	 (funcall pred (car l1) (car l2)))
+	((or l1 l2)
+	 (not l1))
+	(t nil)))
+
+(defun amsreftex-compare-author (e1 e2)
+  "Return non-nil if authors/editors of E1 should sort before those of E2.
+
+Compares names according to `amsreftex-sort-name-parts'."
+  (let ((nl1 (amsreftex-get-bib-name-list e1))
+	(nl2 (amsreftex-get-bib-name-list e2)))
+   (amsreftex-compare-lists
+     nl1
+     nl2
+     (lambda (n1 n2) (amsreftex-compare-lists n1 n2 #'string<)))))
+
+(defun amsreftex-compare-year (e1 e2)
+  "Return non-nil if year field of E1 should sort before that of E2."
+  (let ((y1 (string-to-number (reftex-get-bib-field "year" e1)))
+	(y2 (string-to-number (reftex-get-bib-field "year" e2))))
+    (< y1 y2)))
+
+;;** Sort (finally!)
+;; We exploit the excellent `sort-subr' which needs the next three
+;; functions:
+
+(defun amsreftex-sort-nextrecfn ()
+  "Move point to the the start of the next \\bib record.
+
+Moves point to the end of the buffer if there is no next record."
+  (let ((start-pos (re-search-forward amsreftex-bib-start-re nil t)))
+    (if start-pos
+	(goto-char (match-beginning 0))
+      (goto-char (point-max)))))
+
+(defun amsreftex-sort-endrecfn ()
+  "Move point to end of the containing \\bib record.
+
+If point is not in a record, move point to the end of the
+previous \\bib record.  If this fails, leave point where it was
+and signal an error."
+  (let ((pos (point)))
+    (end-of-line)     ;in case we are still at the start of the record
+    (condition-case nil
+	(progn
+	  (re-search-backward amsreftex-bib-start-re)
+	  (forward-list 3))
+      (t (error "Malformed \\bib entry near position %S" pos)
+	 (goto-char pos)))))
+
+(defun amsreftex-sort-startkeyfn ()
+  "Parse current \\bib record for use as sort key.
+
+Assumes point is at the start of the record."
+  (amsreftex-parse-entry nil
+			 (point)
+			 (amsreftex-end-of-bib-entry nil)))
+
+(defun amsreftex-sort-buffer-by (pred)
+  "Sort the \\bib records in the current buffer according to PRED."
+  (let ((sort-fold-case t))
+    (sort-subr nil
+	       #'amsreftex-sort-nextrecfn
+	       #'amsreftex-sort-endrecfn
+	       #'amsreftex-sort-startkeyfn
+	       nil
+	       pred)))
+
+;;;###autoload
+(defun amsreftex-sort-bibliography ()
+  "Sort bibliography at point by fields listed in `amsreftex-sort-fields'.
+
+If point is not in a bibliography, ask whether to sort all \\bib
+entries in the buffer.  If the buffer contains multiple
+bibliographies, you probably do not want to do this."
+  (interactive)
+  (let ((field-list (reverse (or amsreftex-sort-fields '(author year))))
+	biblist-start biblist-end pos)
+    (catch 'bail
+      (save-excursion
+	(save-restriction
+	  (widen)
+	  ;; Find the biblist
+	  (end-of-line)
+	  (setq pos (point))
+	  (setq biblist-start (re-search-backward amsreftex-biblist-start-re nil t))
+	  (setq biblist-end (re-search-forward amsreftex-biblist-end-re nil t))
+	  (if (and biblist-start biblist-end (<= biblist-start pos biblist-end))
+	      ;; we have a biblist: narrow to it
+	      (narrow-to-region biblist-start biblist-end)
+	    (unless (y-or-n-p "No biblist env found around point: sort whole buffer? ")
+	      (throw 'bail nil)))
+	  ;; Sort it
+	  (dolist (field field-list)
+	    (goto-char (point-min))
+	    (amsreftex-sort-nextrecfn)
+	    (amsreftex-sort-buffer-by
+	     (lambda (e1 e2) (amsreftex-compare-by-field e1 e2 field)))))))))
+
 ;;* Entry point
 
 ;;;###autoload
@@ -840,7 +1038,6 @@ macros."
 ;;     - Package-Requires
 ;;     - URL
 ;;     - lots of linting
-;;** In-place sorting of biblists: this would be a winner.
 
 
 ;;* NEXT:
