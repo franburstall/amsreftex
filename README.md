@@ -6,8 +6,11 @@ bibliography support for
 
 # News
 
-New in v0.2: sort your bibliography with
-`amsreftex-sort-bibliography`.
+New in v0.2: 
+
+* sort your bibliography with `amsreftex-sort-bibliography`.
+* Rename `turn-on/off-amsreftex` to `amsreftex-turn-on/off`
+  to placate `package-lint`.
 
 # Installation and usage
 
@@ -17,7 +20,7 @@ Download `amsreftex.el`, put it somewhere in your load-path
 and then do
 ```elisp
 (require 'amsreftex)
-(turn-on-amsreftex)
+(amsreftex-turn-on)
 ```
 
 After this, `reftex` should detect if you are using `amsrefs`
