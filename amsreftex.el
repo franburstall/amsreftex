@@ -41,11 +41,39 @@
 ;; If, for any reason, you want to revert to vanilla `reftex`,
 ;; just do `M-x turn-off-amsreftex`.
 ;;
+;; - Sorting:
+;; Do `M-x amsreftex-sort-bibliography` to sort in-document
+;; bibliographies or stand-alone `amsrefs` databases.
+;; 
+;; If point is in a `biblist` environment, that alone will be
+;; sorted.  Otherwise, all `\bib` records in the buffer will be
+;; sorted (after checking that you really want to do that).  In
+;; this case, all text outside `\bib` records is left
+;; untouched.
+;;
 ;; Configuration:
-;; There is almost nothing to configure.  The one exception: by
-;; default, `amsreftex` inspects $TEXINPUTS to find the
-;; search-path for `amsrefs` databases (.ltb files).
-;; Customize `reftex-ltbpath-environment-variables' to change this.
+;; - Database search path
+;; By default, `amsreftex` inspects $TEXINPUTS to find the search-path
+;; for `amsrefs` databases (.ltb files).  Customize
+;; `reftex-ltbpath-environment-variables' to change this.
+;; 
+;; - Sort order
+;; By default, `amsreftex-sort-bibliography` sorts by author
+;; then year.  The list of fields to sort by is contained in
+;; `amsreftex-sort-fields' so do
+;;     (setq amsreftex-sort-fields '("author" "title"))
+;; to sort by author then title.
+;; 
+;; You can choose how to sort names by setting
+;; `amsreftex-sort-name-parts'.  By default, we sort by last
+;; name then initial.  Do
+;;     (setq amsreftex-sort-name-parts '(first last))
+;; in the unlikely event that you want to sort by first name
+;; then last name!
+
+;; NEWS:
+;; v0.2: `amsreftex-sort-bibliography' added.
+;; v0.2: initial release.
 
 ;; Implementation:
 ;; Vanilla reftex is mostly agnostic about the format of the
@@ -791,7 +819,7 @@ Intended to advise `%s'" new-fn old-fn)
 ;; other hand, what do journals do?  A small sampling from MathSciNet
 ;; suggests that, for example, Ørsted gets sorted as if Orsted by
 ;; Trans. AMS and so we will do similarly.  We brutally strip out
-;; accents and special characters as though it is still the 1970's and
+;; accents and special characters as though it is still the 1980's and
 ;; ASCII is king.  We may return to this later and try to do better.
 
 ;;** Handling names
@@ -806,7 +834,7 @@ The default is to sort by authors then year.")
 
 Valid elements are 'first, 'last and 'initial.
 
-Example: when set to '(first last) then \"Burstall, Francis\" will
+Example: when set to '(first last) then \"Segal, Graeme\" will
 sort before \"Atiyah, Michael\" while, with '(last first), the
 converse is true.")
 
