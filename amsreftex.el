@@ -1,10 +1,10 @@
-;;; amsreftex.el --- amsrefs bibliography support for reftex  -*- lexical-binding: t; -*-
+;;; amsreftex.el --- Add amsrefs bibliography support for reftex  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020  Fran Burstall
 
 ;; Author: Fran Burstall <fran.burstall@gmail.com>
 ;; Version: 0.2
-;; Package-Requires: ((emacs "24.4"))
+;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: tex
 ;; URL: https://github.com/franburstall/amsreftex
 
@@ -28,7 +28,7 @@
 ;; and then do
 ;; 
 ;; (require 'amsreftex)
-;; (turn-on-amsreftex)
+;; (amsreftex-turn-on)
 ;; 
 ;; After this, `reftex` should detect if you are using `amsrefs`
 ;; databases and Just Work.
@@ -39,7 +39,7 @@
 ;; first time.
 ;; 
 ;; If, for any reason, you want to revert to vanilla `reftex`,
-;; just do `M-x turn-off-amsreftex`.
+;; just do `M-x amsreftex-turn-off`.
 ;;
 ;; - Sorting:
 ;; Do `M-x amsreftex-sort-bibliography` to sort in-document
@@ -72,7 +72,9 @@
 ;; then last name!
 
 ;; NEWS:
-;; v0.2: `amsreftex-sort-bibliography' added.
+;; v0.2: -`amsreftex-sort-bibliography' added
+;;       - Rename turn-on/off-amsreftex to amsreftex-turn-on/off to
+;;         placate package-lint.
 ;; v0.2: initial release.
 
 ;; Implementation:
@@ -156,7 +158,8 @@
 
 ;; Searching for files: we setup the ltb file type for
 ;; reftex-locate-file.  For this, it suffices to setup the following
-;; variables:
+;; variables which MUST have the the form `reftex-*path-environment
+;; variables` and `reftex-*-path`, package-lint notwithstanding:
 (defcustom reftex-ltbpath-environment-variables '("TEXINPUTS")
   "List of specifications how to retrieve search path for .ltb database files.
 Several entries are possible.
@@ -248,8 +251,7 @@ Fields with keys 'author' or 'editor' are collected into a single BibTeX-style f
 	  (setq alist (append (amsreftex-extract-fields field key) alist)))
 	 ((and (equal key "title") prefix)
 	  ;; booktitle comes from compound field
-	  (push (cons "booktitle" field) alist)
-	  )
+	  (push (cons "booktitle" field) alist))
 	 ((equal key "date")
 	  ;; amsrefs has a date field so extract the year
 	  (let* ((date-fields (split-string field "-" t))
@@ -363,7 +365,7 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	     ;; look for start of \bib, taking care since the match
 	     ;; could be the cite-key and so be missing by
 	     ;; re-search-backward on amsreftex-bib-start-re
-	     (unless (re-search-backward  "^[^%\n]*?\\\\bib[ \t]*{"  nil t)
+	     (unless (re-search-backward "^[^%\n]*?\\\\bib[ \t]*{" nil t)
 	       (throw 'search-again nil))
 	     (setq start-point (point))
 	     ;; go to end of first line of entry
@@ -388,17 +390,17 @@ If ENTRY is nil then parse the entry in current buffer between FROM and TO."
 	     (push (cons "&entry" entry) alist)
 	     ;; crossref stuff
 	     (if (assoc "xref" alist)
-                 (setq alist
-                       (append
-                        alist (amsreftex-get-crossref-alist alist))))
+		 (setq alist
+		       (append
+			alist (amsreftex-get-crossref-alist alist))))
 	     (push (cons "&formatted" (reftex-format-bib-entry alist))
 		   alist)
 	     (push (amsreftex-get-bib-field "&key" alist) alist)
 
 	     ;; add to the results
 	     (push alist results))))))
-    (nreverse results)
-    ))
+    (nreverse results)))
+
 ;; Replacement for both reftex-extract-bib-entries and
 ;; reftex-extract-bib-entries-from-thebibliography
 
@@ -421,46 +423,45 @@ BUFFERS is a list of buffers or file names."
 
     (setq first-re (car re-list))
     (if (string-match "\\`[ \t]*\\'" (or first-re ""))
-        (user-error "Empty regular expression"))
+	(user-error "Empty regular expression"))
     (if (string-match first-re "")
-        (user-error "Regular expression matches the empty string"))
+	(user-error "Regular expression matches the empty string"))
 
     (save-excursion
       (save-window-excursion
 
-        ;; Walk through all database files
-        (while buffer-list
-          (setq buffer (car buffer-list)
-                buffer-list (cdr buffer-list))
-          (if (and (bufferp buffer)
-                   (buffer-live-p buffer))
-              (setq buffer1 buffer)
-            (setq buffer1 (reftex-get-file-buffer-force
-                           buffer (not reftex-keep-temporary-buffers))))
-          (if (not buffer1)
-              (message "No such amsrefs database file %s (ignored)" buffer)
-            (message "Scanning bibliography database %s" buffer1)
+	;; Walk through all database files
+	(while buffer-list
+	  (setq buffer (car buffer-list)
+		buffer-list (cdr buffer-list))
+	  (if (and (bufferp buffer)
+		   (buffer-live-p buffer))
+	      (setq buffer1 buffer)
+	    (setq buffer1 (reftex-get-file-buffer-force
+			   buffer (not reftex-keep-temporary-buffers))))
+	  (if (not buffer1)
+	      (message "No such amsrefs database file %s (ignored)" buffer)
+	    (message "Scanning bibliography database %s" buffer1)
 	    (unless (verify-visited-file-modtime buffer1)
-              (when (y-or-n-p
-                     (format "File %s changed on disk.  Reread from disk? "
-                             (file-name-nondirectory
-                              (buffer-file-name buffer1))))
-                (with-current-buffer buffer1 (revert-buffer t t)))))
+	      (when (y-or-n-p
+		     (format "File %s changed on disk.  Reread from disk? "
+			     (file-name-nondirectory
+			      (buffer-file-name buffer1))))
+		(with-current-buffer buffer1 (revert-buffer t t)))))
 	  (setq found-list (append found-list (amsreftex--extract-entries re-list buffer1)))
-          
-          (reftex-kill-temporary-buffers))))
+
+	  (reftex-kill-temporary-buffers))))
     (setq found-list (nreverse found-list))
 
     ;; Sorting
     (cond
      ((eq 'author reftex-sort-bibtex-matches)
       (sort found-list 'reftex-bib-sort-author))
-     ((eq 'year   reftex-sort-bibtex-matches)
+     ((eq 'year reftex-sort-bibtex-matches)
       (sort found-list 'reftex-bib-sort-year))
      ((eq 'reverse-year reftex-sort-bibtex-matches)
       (sort found-list 'reftex-bib-sort-year-reverse))
-     (t found-list))
-    ))
+     (t found-list))))
 
 ;;* Parsing the source file
 
@@ -522,102 +523,101 @@ Additionally add amsref databases."
 
              (while (re-search-forward regexp nil t)
 
-               (cond
+	       (cond
 
-                ((match-end 1)
-                 ;; It is a label
+		((match-end 1)
+		 ;; It is a label
 		 (when (or (null reftex-label-ignored-macros-and-environments)
 			   ;; \label{} defs should always be honored,
 			   ;; just no keyval style [label=foo] defs.
 			   (string-equal "\\label{" (substring (reftex-match-string 0) 0 7))
-                           (if (and (fboundp 'TeX-current-macro)
-                                    (fboundp 'LaTeX-current-environment))
-                               (not (or (member (save-match-data (TeX-current-macro))
-                                                reftex-label-ignored-macros-and-environments)
-                                        (member (save-match-data (LaTeX-current-environment))
-                                                reftex-label-ignored-macros-and-environments)))
-                             t))
+			   (if (and (fboundp 'TeX-current-macro)
+				    (fboundp 'LaTeX-current-environment))
+			       (not (or (member (save-match-data (TeX-current-macro))
+						reftex-label-ignored-macros-and-environments)
+					(member (save-match-data (LaTeX-current-environment))
+						reftex-label-ignored-macros-and-environments)))
+			     t))
 		   (push (reftex-label-info (reftex-match-string 1) file bound)
 			 docstruct)))
 
-                ((match-end 3)
-                 ;; It is a section
+		((match-end 3)
+		 ;; It is a section
 
 		 ;; Use the beginning as bound and not the end
 		 ;; (i.e. (point)) because the section command might
 		 ;; be the start of the current environment to be
 		 ;; found by `reftex-label-info'.
-                 (setq bound (match-beginning 0))
+		 (setq bound (match-beginning 0))
 		 ;; The section regexp matches a character at the end
 		 ;; we are not interested in.  Especially if it is the
 		 ;; backslash of a following macro we want to find in
 		 ;; the next parsing iteration.
 		 (when (eq (char-before) ?\\) (backward-char))
-                 ;; Insert in List
-                 (setq toc-entry (funcall reftex-section-info-function file))
-                 (when (and toc-entry
-                            (eq ;; Either both are t or both are nil.
-                             (= (char-after bound) ?%)
-                             (string-suffix-p ".dtx" file)))
-                   ;; It can happen that section info returns nil
-                   (setq level (nth 5 toc-entry))
-                   (setq highest-level (min highest-level level))
-                   (if (= level highest-level)
-                       (message
-                        "Scanning %s %s ..."
-                        (car (rassoc level reftex-section-levels-all))
-                        (nth 6 toc-entry)))
+		 ;; Insert in List
+		 (setq toc-entry (funcall reftex-section-info-function file))
+		 (when (and toc-entry
+			    (eq ;; Either both are t or both are nil.
+			     (= (char-after bound) ?%)
+			     (string-suffix-p ".dtx" file)))
+		   ;; It can happen that section info returns nil
+		   (setq level (nth 5 toc-entry))
+		   (setq highest-level (min highest-level level))
+		   (if (= level highest-level)
+		       (message
+			"Scanning %s %s ..."
+			(car (rassoc level reftex-section-levels-all))
+			(nth 6 toc-entry)))
 
-                   (push toc-entry docstruct)
-                   (setq reftex-active-toc toc-entry)))
+		   (push toc-entry docstruct)
+		   (setq reftex-active-toc toc-entry)))
 
-                ((match-end 7)
-                 ;; It's an include or input
-                 (setq include-file (reftex-match-string 7))
-                 ;; Test if this file should be ignored
-                 (unless (delq nil (mapcar
-                                    (lambda (x) (string-match x include-file))
-                                    reftex-no-include-regexps))
-                   ;; Parse it
-                   (setq docstruct
-                         (reftex-parse-from-file
-                          include-file
-                          docstruct master-dir))))
+		((match-end 7)
+		 ;; It's an include or input
+		 (setq include-file (reftex-match-string 7))
+		 ;; Test if this file should be ignored
+		 (unless (delq nil (mapcar
+				    (lambda (x) (string-match x include-file))
+				    reftex-no-include-regexps))
+		   ;; Parse it
+		   (setq docstruct
+			 (reftex-parse-from-file
+			  include-file
+			  docstruct master-dir))))
 
-                ((match-end 9)
-                 ;; Appendix starts here
-                 (reftex-init-section-numbers nil t)
-                 (push (cons 'appendix t) docstruct))
+		((match-end 9)
+		 ;; Appendix starts here
+		 (reftex-init-section-numbers nil t)
+		 (push (cons 'appendix t) docstruct))
 
-                ((match-end 10)
-                 ;; Index entry
-                 (when reftex-support-index
-                   (setq index-entry (reftex-index-info file))
-                   (when index-entry
-                     (cl-pushnew (nth 1 index-entry) reftex--index-tags :test #'equal)
-                     (push index-entry docstruct))))
+		((match-end 10)
+		 ;; Index entry
+		 (when reftex-support-index
+		   (setq index-entry (reftex-index-info file))
+		   (when index-entry
+		     (cl-pushnew (nth 1 index-entry) reftex--index-tags :test #'equal)
+		     (push index-entry docstruct))))
 
-                ((match-end 11)
-                 ;; A macro with label
-                 (save-excursion
-                   (let* ((mac (reftex-match-string 11))
-                          (label (progn (goto-char (match-end 11))
-                                        (save-match-data
-                                          (reftex-no-props
-                                           (reftex-nth-arg-wrapper
-                                            mac)))))
-                          (typekey (nth 1 (assoc mac reftex-env-or-mac-alist)))
-                          (entry (progn (if typekey
-                                            ;; A typing macro
-                                            (goto-char (match-end 0))
-                                          ;; A neutral macro
-                                          (goto-char (match-end 11))
-                                          (reftex-move-over-touching-args))
-                                        (reftex-label-info
-                                         label file bound nil nil))))
-                     (push entry docstruct))))
-                (t (error "This should not happen (reftex-parse-from-file)")))
-               )
+		((match-end 11)
+		 ;; A macro with label
+		 (save-excursion
+		   (let* ((mac (reftex-match-string 11))
+			  (label (progn (goto-char (match-end 11))
+					(save-match-data
+					  (reftex-no-props
+					   (reftex-nth-arg-wrapper
+					    mac)))))
+			  (typekey (nth 1 (assoc mac reftex-env-or-mac-alist)))
+			  (entry (progn (if typekey
+					    ;; A typing macro
+					    (goto-char (match-end 0))
+					  ;; A neutral macro
+					  (goto-char (match-end 11))
+					  (reftex-move-over-touching-args))
+					(reftex-label-info
+					 label file bound nil nil))))
+		     (push entry docstruct))))
+		(t (error "This should not happen (reftex-parse-from-file)"))))
 
 	     ;; amsreftex changes start here
 	     (cond
@@ -1004,7 +1004,7 @@ bibliographies, you probably do not want to do this."
 ;;* Entry point
 
 ;;;###autoload
-(defun turn-on-amsreftex ()
+(defun amsreftex-turn-on ()
   "Turn on amsreftex.
 
 This advises several reftex functions to make them work with
@@ -1034,7 +1034,7 @@ macros."
   
   (setq amsreftex-p t))
 
-(defun turn-off-amsreftex ()
+(defun amsreftex-turn-off ()
   "Turn off amsreftex, leaving almost no trace behind.
 
  We remove all advice added by `turn-on-amsrefs' and any font-locking installed."
@@ -1049,14 +1049,17 @@ macros."
 		   #'amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography)
     (advice-remove 'reftex-pop-to-bibtex-entry #'amsreftex-subvert-reftex-pop-to-bibtex-entry)
     (advice-remove 'reftex-echo-cite #'amsreftex-set-last-arg-to-nil)
-    (advice-remove 'reftex-end-of-bib-entry  #'amsreftex-set-last-arg-to-nil)
-    (advice-remove 'reftex-parse-from-file  #'amsreftex-parse-from-file)
-    (advice-remove 'reftex-bibtex-selection-callback  #'amsreftex-database-selection-callback)
-    
+    (advice-remove 'reftex-end-of-bib-entry #'amsreftex-set-last-arg-to-nil)
+    (advice-remove 'reftex-parse-from-file #'amsreftex-parse-from-file)
+    (advice-remove 'reftex-bibtex-selection-callback #'amsreftex-database-selection-callback)
+
     (font-lock-remove-keywords 'latex-mode amsreftex-font-lock-keywords)
-    
-    (setq amsreftex-p nil))
-  )
+
+    (setq amsreftex-p nil)))
+
+;; for the two users of v0.1:
+(fset 'turn-on-amsreftex #'amsreftex-turn-on)
+(fset 'turn-off-amsreftex #'amsreftex-turn-off)
 
 (provide 'amsreftex)
 
