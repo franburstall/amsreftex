@@ -4,7 +4,14 @@
 bibliography support for
 [`reftex`](https://www.gnu.org/software/auctex/reftex.html).
 
+# News
+
+New in v0.2: sort your bibliography with
+`amsreftex-sort-bibliography`.
+
 # Installation and usage
+
+## Basic usage
 
 Download `amsreftex.el`, put it somewhere in your load-path
 and then do
@@ -24,16 +31,50 @@ first time.
 If, for any reason, you want to revert to vanilla `reftex`,
 just do `M-x turn-off-amsreftex`.
 
+## Sorting
+
+Do `M-x amsreftex-sort-bibliography` to sort in-document
+bibliographies or stand-alone `amsrefs` databases.
+
+If point is in a `biblist` environment, that alone will be
+sorted.  Otherwise, all `\bib` records in the buffer will be
+sorted (after checking that you really want to do that).  In
+this case, all text outside `\bib` records is left
+untouched.
+
+See below to configure the sort order.
+
 # Configuration
 
-There is almost nothing to configure.  The one exception: by
-default, `amsreftex` inspects `$TEXINPUTS` to find the
+## Database search path
+By default, `amsreftex` inspects `$TEXINPUTS` to find the
 search-path for `amsrefs` databases (`.ltb` files).
-Customize `reftex-ltbpath-environment-variables` to change this.
+Customize `reftex-ltbpath-environment-variables` to change
+this.
 
+## Sort order
+By default, `amsreftex-sort-bibliography` sorts by author
+then year.  The list of fields to sort by is contained in
+`amsreftex-sort-fields` so do
+```elisp
+(setq amsreftex-sort-fields '("author" "title"))
+```
+to sort by author then title.
 
-# Warning
+You can choose how to sort names by setting
+`amsreftex-sort-name-parts`.  By default, we sort by last
+name then initial.  Do
+```elisp
+(setq amsreftex-sort-name-parts '(first last))
+```
+in the unlikely event that you want to sort by first name
+then last name!
 
-This is alpha quality software.  It is doubtless riddled
+# Warnings
+
+1. This is alpha quality software.  It is doubtless riddled
 with bugs (raise an issue when you find them) but works for
 me.
+
+2. Sorting has a very 1980's ASCII-centric flavour!  Send a
+   PR if you can help improve matters.
