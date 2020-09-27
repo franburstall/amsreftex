@@ -75,7 +75,7 @@
 ;; v0.2: -`amsreftex-sort-bibliography' added
 ;;       - Rename turn-on/off-amsreftex to amsreftex-turn-on/off to
 ;;         placate package-lint.
-;; v0.2: initial release.
+;; v0.1: initial release.
 
 ;; Implementation:
 ;; Vanilla reftex is mostly agnostic about the format of the
