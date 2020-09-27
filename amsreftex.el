@@ -121,6 +121,7 @@
 (require 'reftex-parse)
 (require 'reftex-dcr)
 (require 'sort)
+(require 'subr-x)
 
 ;;* Vars
 
