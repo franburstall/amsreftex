@@ -696,13 +696,11 @@ dispatches the pop-to-entry function based on that."
         (setq bibtype (reftex-bib-or-thebib))
         (cond
          ((eq bibtype 'bib)
-					;        ((assq 'bib (symbol-value reftex-docstruct-symbol))
           (setq bibfile-list (reftex-get-bibfile-list)))
          ((eq bibtype 'thebib)
-					;        ((assq 'thebib (symbol-value reftex-docstruct-symbol))
           (setq bibfile-list
                 (reftex-uniquify
-                 (mapcar 'cdr
+                 (mapcar '#cdr
                          (reftex-all-assq
                           'thebib (symbol-value reftex-docstruct-symbol))))
                 item t))
