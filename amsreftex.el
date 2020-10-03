@@ -700,7 +700,7 @@ dispatches the pop-to-entry function based on that."
          ((eq bibtype 'thebib)
           (setq bibfile-list
                 (reftex-uniquify
-                 (mapcar '#cdr
+                 (mapcar #'cdr
                          (reftex-all-assq
                           'thebib (symbol-value reftex-docstruct-symbol))))
                 item t))
