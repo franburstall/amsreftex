@@ -1058,8 +1058,17 @@ macros."
     (setq amsreftex-p nil)))
 
 ;; for the two users of v0.1:
-(fset 'turn-on-amsreftex #'amsreftex-turn-on)
-(fset 'turn-off-amsreftex #'amsreftex-turn-off)
+(define-obsolete-function-alias 'turn-on-amsreftex 'amsreftex-turn-on "0.2"
+  "Turn on amsreftex.
+
+This advises several reftex functions to make them work with
+amsrefs databases and installs some font-locking for \\bib
+macros.")
+
+(define-obsolete-function-alias 'turn-off-amsreftex #'amsreftex-turn-off "0.2"
+  "Turn off amsreftex, leaving almost no trace behind.
+
+ We remove all advice added by `turn-on-amsrefs' and any font-locking installed.")
 
 (provide 'amsreftex)
 
