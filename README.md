@@ -1,4 +1,5 @@
 # amsreftex
+[![MELPA](https://melpa.org/packages/amsreftex-badge.svg)](https://melpa.org/#/amsreftex)
 
 [`amsrefs`](http://www.ams.org/publications/authors/tex/amsrefs)
 bibliography support for
@@ -12,27 +13,43 @@ New in v0.2:
 * Rename `turn-on/off-amsreftex` to `amsreftex-turn-on/off`
   to placate `package-lint`.
 
-# Installation and usage
+# Installation and activation
 
-## Basic usage
-
+## From MELPA
+```elisp
+(install-package 'amreftex)
+```
+and activate with
+```elisp
+(amsreftex-turn-on)
+```
+or do it in one shot with
+```elisp
+(use-package amsreftex
+  :ensure t
+  :config
+  (amsreftex-turn-on))
+```
+## Manual
 Download `amsreftex.el`, put it somewhere in your load-path
 and then do
 ```elisp
 (require 'amsreftex)
 (amsreftex-turn-on)
 ```
+# Usage
 
-After this, `reftex` should detect if you are using `amsrefs`
+## Basic usage
+Once `amsreftex` is activated, `reftex` should detect if you are using `amsrefs`
 databases and Just Work.
 
-This works by checking for the existence of `\bibselect` or
+It does this by checking for the existence of `\bibselect` or
 `\bib` macros.  You may need to re-parse your document with
 `M-x reftex-parse-all` after inserting these macros for the
 first time.
 
 If, for any reason, you want to revert to vanilla `reftex`,
-just do `M-x turn-off-amsreftex`.
+just do `M-x amsreftex-turn-off`.
 
 ## Sorting
 

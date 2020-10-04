@@ -23,20 +23,36 @@
 
 ;;; Commentary:
 
-;; Usage:
-;; Download `amsreftex.el`, put it somewhere in your load-path
+;; Installation and activation:
+;; - From MELPA: do
+;;
+;; (install-package 'amreftex)
+;; 
+;; and activate with
+;; 
+;; (amsreftex-turn-on)
+;;
+;; or
+;;
+;; (use-package amsreftex
+;;   :ensure t
+;;   :config
+;;   (amsreftex-turn-on))
+;;
+;; - Manually: download `amsreftex.el`, put it somewhere in your load-path
 ;; and then do
 ;; 
 ;; (require 'amsreftex)
 ;; (amsreftex-turn-on)
 ;; 
-;; After this, `reftex` should detect if you are using `amsrefs`
-;; databases and Just Work.
+;; Usage:
 ;; 
-;; This works by checking for the existence of `\bibselect` or
-;; `\bib` macros.  You may need to re-parse your document with
-;; `M-x reftex-parse-all` after inserting these macros for the
-;; first time.
+;; Once `amsreftex` is activated, `reftex` should detect if you are
+;; using `amsrefs` databases and Just Work.
+;; 
+;; It does this by checking for the existence of `\bibselect` or
+;; `\bib` macros.  You may need to re-parse your document with `M-x
+;; reftex-parse-all` after inserting these macros for the first time.
 ;; 
 ;; If, for any reason, you want to revert to vanilla `reftex`,
 ;; just do `M-x amsreftex-turn-off`.
@@ -1071,14 +1087,7 @@ macros.")
 (provide 'amsreftex)
 
 ;;* TO DO:
-
-;;**  Package for MELPA
-;;     - Package-Requires
-;;     - URL
-;;     - lots of linting
-
-
-;;* NEXT:
+;; 
 ;; (a) Look into better formatting of \bib by auctex.  Best option is
 ;; no formatting.  Should add an entry to
 ;; LaTeX-indent-environment-list.  Learn about how filling works...
