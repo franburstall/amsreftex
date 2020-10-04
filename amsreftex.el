@@ -26,7 +26,7 @@
 ;; Installation and activation:
 ;; - From MELPA: do
 ;;
-;; (install-package 'amreftex)
+;; (install-package 'amsreftex)
 ;; 
 ;; and activate with
 ;; 

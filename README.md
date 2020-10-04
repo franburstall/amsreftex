@@ -17,7 +17,7 @@ New in v0.2:
 
 ## From MELPA
 ```elisp
-(install-package 'amreftex)
+(install-package 'amsreftex)
 ```
 and activate with
 ```elisp
