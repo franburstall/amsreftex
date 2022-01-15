@@ -1,6 +1,6 @@
 ;;; amsreftex.el --- Add amsrefs bibliography support for reftex  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020  Fran Burstall
+;; Copyright (C) 2020, 2022  Fran Burstall
 
 ;; Author: Fran Burstall <fran.burstall@gmail.com>
 ;; Version: 0.2
@@ -783,7 +783,7 @@ Assumes that point is at the start of the entry."
   (save-excursion
     (condition-case nil
         (cond
-	 ((looking-at-p "\\\\bib[*]?{")
+	 ((looking-at-p "[ \t]*\\\\bib[*]?{")
 	  (forward-list 3)
 	  (point))
 	 (item
