@@ -237,7 +237,8 @@ If FILES is present, list these instead."
 
 Prefix key with string \"PREFIX-\" if PREFIX is non-nil.
 
-Fields with keys 'author' or 'editor' are collected into a single BibTeX-style field."
+Fields with keys 'author' or 'editor' are collected into a single BibTeX-style
+field."
   (with-temp-buffer
     (fundamental-mode)
     (set-syntax-table reftex-syntax-table-for-bib)
@@ -898,7 +899,8 @@ Try author first and then editor."
 (defun amsreftex-compare-by-field (e1 e2 field)
   "Return non-nil if FIELD of E1 is less than that of E2.
 
-Compares with `amsreftex-compare-FIELD' if this is fbound and `string<' otherwise."
+Compares with `amsreftex-compare-FIELD' if this is fbound and
+`string<' otherwise."
   (let ((pred (intern (concat "amsreftex-compare-" field))))
     (if (fboundp pred)
 	(funcall pred e1 e2)
