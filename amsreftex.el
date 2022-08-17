@@ -512,7 +512,7 @@ Additionally add amsref databases."
     (catch 'exit
       (setq file-found (reftex-locate-file file "tex" master-dir))
       (if (and (not file-found)
-               (setq buf (reftex-get-buffer-visiting file)))
+               (setq buf (find-buffer-visiting file)))
           (setq file-found (buffer-file-name buf)))
 
       (unless file-found
