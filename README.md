@@ -6,8 +6,11 @@ bibliography support for
 [`reftex`](https://www.gnu.org/software/auctex/reftex.html).
 
 # News
+## v0.3
 
-New in v0.2: 
+Invisible (I hope) changes to silence the byte-compiler.
+
+## v0.2: 
 
 * sort your bibliography with `amsreftex-sort-bibliography`.
 * Rename `turn-on/off-amsreftex` to `amsreftex-turn-on/off`
