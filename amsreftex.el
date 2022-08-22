@@ -3,7 +3,7 @@
 ;; Copyright (C) 2020, 2022  Fran Burstall
 
 ;; Author: Fran Burstall <fran.burstall@gmail.com>
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: tex
 ;; URL: https://github.com/franburstall/amsreftex
