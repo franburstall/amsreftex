@@ -185,9 +185,10 @@ Several entries are possible.
   to retrieve the path.  A typical command with the kpathsearch library would
   be `!kpsewhich -show-path=.tex'.
 - Otherwise the element itself is interpreted as a path.
-Multiple directories can be separated by the system dependent `path-separator'.
-Directories ending in `//' or `!!' will be expanded recursively.
-See also `reftex-use-external-file-finders'."
+Multiple directories can be separated by the system dependent
+variable `path-separator'.  Directories ending in `//' or `!!'
+will be expanded recursively.  See also
+`reftex-use-external-file-finders'."
   :group 'reftex-citation-support
   :group 'reftex-finding-files
   :set 'reftex-set-dirty
