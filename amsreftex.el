@@ -797,35 +797,6 @@ Assumes that point is at the start of the entry."
 	  (forward-list 1) (point)))
       (error (min (point-max) (+ 300 (point)))))))
 
-;;* Subvert relevant reftex functions
-
-;; Silence the byte-compiler: we shall define these functions by macro below.
-(declare-function amsreftex-subvert-reftex-locate-bibliography-files "amsreftex" t)
-(declare-function amsreftex-subvert-reftex-parse-bibtex-entry "amsreftex" t)
-(declare-function amsreftex-subvert-reftex-get-crossref-alist "amsreftex" t)
-(declare-function amsreftex-subvert-reftex-extract-bib-entries "amsreftex"  t)
-(declare-function amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography "amsreftex" t)
-(declare-function amsreftex-subvert-reftex-pop-to-bibtex-entry "amsreftex" t)
-
-(defmacro amsreftex-subvert-fn (old-fn new-fn)
-  "If amsrefs databases are in use, advise OLD-FN so that it is replaced by NEW-FN."
-  (let ((subvert-fn (intern (format "amsreftex-subvert-%s" old-fn))))
-    `(progn
-       (defun ,subvert-fn (old-fn &rest args)
-	 ,(format "If amsrefs databases are in use, replace OLD-FN with `%s'.
-
-Intended to advise `%s'" new-fn old-fn)
-	 (if (assq 'database (symbol-value reftex-docstruct-symbol))
-	     (apply #',new-fn args)
-	   (apply old-fn args)))
-       
-       (advice-add ',old-fn :around #',subvert-fn))))
-
-(defun amsreftex-set-last-arg-to-nil (args)
-  "If amsrefs databases are in use, set last element of ARGS to nil."
-  (when (assq 'database (symbol-value reftex-docstruct-symbol))
-    (setf (car (last args)) nil))
-  args)
 
 ;;* Sorting
 ;; This is shockingly easy in some ways, thanks to the 'sort' library.
@@ -1018,6 +989,55 @@ bibliographies, you probably do not want to do this."
 	    (amsreftex-sort-buffer-by
 	     (lambda (e1 e2) (amsreftex-compare-by-field e1 e2 field)))))))))
 
+;;* Subvert relevant reftex functions
+
+;; Silence the byte-compiler: we shall define these functions by macro below.
+;; (declare-function amsreftex-advise-reftex-locate-bibliography-files "amsreftex" t)
+;; (declare-function amsreftex-advise-reftex-parse-bibtex-entry "amsreftex" t)
+;; (declare-function amsreftex-advise-reftex-get-crossref-alist "amsreftex" t)
+;; (declare-function amsreftex-advise-reftex-extract-bib-entries "amsreftex"  t)
+;; (declare-function amsreftex-advise-reftex-extract-bib-entries-from-thebibliography "amsreftex" t)
+;; (declare-function amsreftex-advise-reftex-pop-to-bibtex-entry "amsreftex" t)
+
+(defmacro amsreftex-advise-fn (old-fn new-fn)
+  "Define advice for OLD-FN to replace it by NEW-FN when amsrefs are in use."
+  (let ((subvert-fn (intern (format "amsreftex-advise-%s" old-fn))))
+    `(defun ,subvert-fn (old-fn &rest args)
+       ,(format "If amsrefs databases are in use, replace OLD-FN with amsreftex equivalent.
+
+The amseftex equivalent is:
+%s
+
+Intended to advise:
+%s." new-fn old-fn)
+       (if (assq 'database (symbol-value reftex-docstruct-symbol))
+	   (apply #',new-fn args)
+	 (apply old-fn args)))))
+
+(amsreftex-advise-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
+(amsreftex-advise-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
+(amsreftex-advise-fn reftex-get-crossref-alist amsreftex-get-crossref-alist)
+(amsreftex-advise-fn reftex-extract-bib-entries amsreftex-extract-entries)
+(amsreftex-advise-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
+(amsreftex-advise-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
+
+(defmacro amsreftex-add-advice (old-fn)
+  "Add advice named amsreftex-advise-OLD-FN to OLD-FN."
+  (let ((advice (intern (format "amsreftex-advise-%s" old-fn))))
+    `(advice-add ',old-fn :around #',advice)))
+
+(defmacro amsreftex-remove-advice (old-fn)
+  "Remove advice named amsreftex-advise-OLD-FN from OLD-FN."
+  (let ((advice (intern (format "amsreftex-advise-%s" old-fn))))
+    `(advice-remove ',old-fn  #',advice)))
+
+(defun amsreftex-set-last-arg-to-nil (args)
+  "If amsrefs databases are in use, set last element of ARGS to nil."
+  (when (assq 'database (symbol-value reftex-docstruct-symbol))
+    (setf (car (last args)) nil))
+
+  args)
+
 ;;* Entry point
 
 ;;;###autoload
@@ -1029,12 +1049,12 @@ amsrefs databases and installs some font-locking for \\bib
 macros."
   (interactive)
   ;; conditionally replace these fns with their amsreftex versions
-  (amsreftex-subvert-fn reftex-locate-bibliography-files amsreftex-locate-bibliography-files)
-  (amsreftex-subvert-fn reftex-parse-bibtex-entry amsreftex-parse-entry)
-  (amsreftex-subvert-fn reftex-get-crossref-alist amsreftex-get-crossref-alist)
-  (amsreftex-subvert-fn reftex-extract-bib-entries amsreftex-extract-entries)
-  (amsreftex-subvert-fn reftex-extract-bib-entries-from-thebibliography amsreftex-extract-entries)
-  (amsreftex-subvert-fn reftex-pop-to-bibtex-entry amsreftex-pop-to-database-entry)
+  (amsreftex-add-advice reftex-locate-bibliography-files)
+  (amsreftex-add-advice reftex-parse-bibtex-entry)
+  (amsreftex-add-advice reftex-get-crossref-alist)
+  (amsreftex-add-advice reftex-extract-bib-entries)
+  (amsreftex-add-advice reftex-extract-bib-entries-from-thebibliography)
+  (amsreftex-add-advice reftex-pop-to-bibtex-entry)
   ;; reftex-echo-cite has an argument ITEM for dealing with the case of
   ;; on-board \bibitems.  We conditionally set this argument to nil.
   (advice-add 'reftex-echo-cite :filter-args #'amsreftex-set-last-arg-to-nil)
@@ -1058,13 +1078,12 @@ macros."
   (interactive)
   (if (not amsreftex-p)
       (user-error "Amsreftex is not turned on!")
-    (advice-remove 'reftex-locate-bibliography-files #'amsreftex-subvert-reftex-locate-bibliography-files)
-    (advice-remove 'reftex-parse-bibtex-entry #'amsreftex-subvert-reftex-parse-bibtex-entry)
-    (advice-remove 'reftex-get-crossref-alist #'amsreftex-subvert-reftex-get-crossref-alist)
-    (advice-remove 'reftex-extract-bib-entries #'amsreftex-subvert-reftex-extract-bib-entries)
-    (advice-remove 'reftex-extract-bib-entries-from-thebibliography
-		   #'amsreftex-subvert-reftex-extract-bib-entries-from-thebibliography)
-    (advice-remove 'reftex-pop-to-bibtex-entry #'amsreftex-subvert-reftex-pop-to-bibtex-entry)
+    (amsreftex-remove-advice reftex-locate-bibliography-files)
+    (amsreftex-remove-advice reftex-parse-bibtex-entry)
+    (amsreftex-remove-advice reftex-get-crossref-alist)
+    (amsreftex-remove-advice reftex-extract-bib-entries)
+    (amsreftex-remove-advice reftex-extract-bib-entries-from-thebibliography)
+    (amsreftex-remove-advice reftex-pop-to-bibtex-entry)
     (advice-remove 'reftex-echo-cite #'amsreftex-set-last-arg-to-nil)
     (advice-remove 'reftex-end-of-bib-entry #'amsreftex-set-last-arg-to-nil)
     (advice-remove 'reftex-parse-from-file #'amsreftex-parse-from-file)
