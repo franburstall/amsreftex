@@ -6,6 +6,11 @@ bibliography support for
 [`reftex`](https://www.gnu.org/software/auctex/reftex.html).
 
 # News
+
+## v0.3.1
+
+Tiny changes to some doc-strings to calm the byte-compiler.
+
 ## v0.3
 
 Invisible (I hope) changes to silence the byte-compiler.
