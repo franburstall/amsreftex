@@ -1,6 +1,6 @@
 ;;; amsreftex.el --- Add amsrefs bibliography support for reftex  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020, 2022  Fran Burstall
+;; Copyright (C) 2020, 2022, 2024  Fran Burstall
 
 ;; Author: Fran Burstall <fran.burstall@gmail.com>
 ;; Version: 0.3
@@ -238,8 +238,8 @@ If FILES is present, list these instead."
 
 Prefix key with string \"PREFIX-\" if PREFIX is non-nil.
 
-Fields with keys 'author' or 'editor' are collected into a single BibTeX-style
-field."
+Fields with keys \"author\" or \"editor\" are collected into
+a single BibTeX-style field."
   (with-temp-buffer
     (fundamental-mode)
     (set-syntax-table reftex-syntax-table-for-bib)
@@ -820,10 +820,10 @@ The default is to sort by authors then year.")
 (defvar amsreftex-sort-name-parts '(last initial)
   "Ordered list of parts of a name to compare when sorting.
 
-Valid elements are 'first, 'last and 'initial.
+Valid elements are \\='first, \\='last and \\='initial.
 
-Example: when set to '(first last) then \"Segal, Graeme\" will
-sort before \"Atiyah, Michael\" while, with '(last first), the
+Example: when set to \\='(first last) then \"Segal, Graeme\" will
+sort before \"Atiyah, Michael\" while, with \\='(last first), the
 converse is true.")
 
 (defun amsreftex-strip-LaTeX (str)
