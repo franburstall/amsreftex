@@ -7,6 +7,10 @@ bibliography support for
 
 # News
 
+## v0.3.2
+
+Restore fontlock for bibliographies under auctex version >= 14.0.
+
 ## v0.3.1
 
 Tiny changes to some doc-strings to calm the byte-compiler.
