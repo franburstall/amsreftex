@@ -88,6 +88,7 @@
 ;; then last name!
 
 ;; NEWS:
+;; v0.3.2: restore font-locking for auctex version >=14
 ;; v0.3.1: doc-string changes for more byte-compiler calm.
 ;; v0.3: invisible changes to sooth the byte compliler.
 ;; v0.2: -`amsreftex-sort-bibliography' added
@@ -1070,6 +1071,7 @@ macros."
   (advice-add 'reftex-end-of-bib-entry :override #'amsreftex-end-of-bib-entry)
   ;; Add some fontification for \bib macros
   (font-lock-add-keywords 'latex-mode amsreftex-font-lock-keywords)
+  (font-lock-add-keywords 'LaTeX-mode amsreftex-font-lock-keywords)
   
   (setq amsreftex-p t))
 
@@ -1092,6 +1094,7 @@ macros."
     (advice-remove 'reftex-bibtex-selection-callback #'amsreftex-database-selection-callback)
 
     (font-lock-remove-keywords 'latex-mode amsreftex-font-lock-keywords)
+    (font-lock-remove-keywords 'LaTeX-mode amsreftex-font-lock-keywords)
 
     (setq amsreftex-p nil)))
 
